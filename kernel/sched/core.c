@@ -79,6 +79,7 @@
 #include <linux/sched/core_ctl.h>
 #include <linux/cpufreq_times.h>
 #include <linux/prefetch.h>
+#include <linux/frame.h>
 
 #include <asm/switch_to.h>
 #include <asm/tlb.h>
@@ -3787,6 +3788,7 @@ static void __sched notrace __schedule(bool preempt)
 
 	balance_callback(rq);
 }
+STACK_FRAME_NON_STANDARD(__schedule); /* switch_to() */
 
 void __noreturn do_task_dead(void)
 {
