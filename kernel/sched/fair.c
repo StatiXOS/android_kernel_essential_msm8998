@@ -3621,7 +3621,7 @@ static inline int migration_needed(struct task_struct *p, int cpu)
 	int nice;
 	struct related_thread_group *grp;
 
-	if (p->state != TASK_RUNNING || p->nr_cpus_allowed == 1)
+	if (p->state != TASK_RUNNING || tsk_nr_cpus_allowed(p) == 1)
 		return 0;
 
 	/* No need to migrate task that is about to be throttled */
