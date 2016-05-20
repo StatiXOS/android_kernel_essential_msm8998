@@ -1148,6 +1148,8 @@ void mem_cgroup_update_lru_size(struct lruvec *lruvec, enum lru_list lru,
 	struct mem_cgroup_per_zone *mz;
 	unsigned long *lru_size;
 
+	__update_lru_size(lruvec, lru, nr_pages);
+
 	if (mem_cgroup_disabled())
 		return;
 
