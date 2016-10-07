@@ -2421,8 +2421,6 @@ static void shrink_lruvec(struct lruvec *lruvec, int swappiness,
 	if (inactive_list_is_low(lruvec, false))
 		shrink_active_list(SWAP_CLUSTER_MAX, lruvec,
 				   sc, LRU_ACTIVE_ANON);
-
-	throttle_vm_writeout(sc->gfp_mask);
 }
 
 /* Use reclaim/compaction for costly allocs or under memory pressure */
