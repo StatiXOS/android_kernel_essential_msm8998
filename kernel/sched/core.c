@@ -25,7 +25,6 @@
  *  2007-11-29  RT balancing improvements by Steven Rostedt, Gregory Haskins,
  *              Thomas Gleixner, Mike Kravetz
  */
-
 #include <linux/kasan.h>
 #include <linux/mm.h>
 #include <linux/module.h>
@@ -78,6 +77,7 @@
 #include <linux/cpufreq_times.h>
 #include <linux/prefetch.h>
 #include <linux/frame.h>
+#include <linux/rcupdate_wait.h>
 
 #include <asm/switch_to.h>
 #include <asm/tlb.h>
