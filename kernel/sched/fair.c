@@ -2906,7 +2906,7 @@ static int skip_cpu(int cpu, struct cpu_select_env *env)
 
 	switch (env->reason) {
 	case UP_MIGRATION:
-		skip = !idle_cpu(cpu);
+		skip = !available_idle_cpu(cpu);
 		break;
 	case IRQLOAD_MIGRATION:
 		/* Purposely fall through */
@@ -3066,7 +3066,7 @@ struct cpu_select_env *env, struct cluster_cpu_stats *stats)
 
 		cpumask_and(&search_cpus, &env->search_cpus, &next->cpus);
 		for_each_cpu(i, &search_cpus) {
-			trace_sched_cpu_load_wakeup(cpu_rq(i), idle_cpu(i),
+			trace_sched_cpu_load_wakeup(cpu_rq(i), available_idle_cpu(i),
 			sched_irqload(i), power_cost(i, task_load(env->p) +
 					cpu_cravg_sync(i, env->sync)), 0);
 
@@ -3121,7 +3121,7 @@ static void __update_cluster_stats(int cpu, struct cluster_cpu_stats *stats,
 
 	if (env->need_idle) {
 		stats->min_cost = cpu_cost;
-		if (idle_cpu(cpu)) {
+		if (available_idle_cpu(cpu)) {
 			if (wakeup_latency < stats->best_cpu_wakeup_latency ||
 			    (wakeup_latency == stats->best_cpu_wakeup_latency &&
 			     cpu == prev_cpu)) {
@@ -3197,7 +3197,7 @@ static void __update_cluster_stats(int cpu, struct cluster_cpu_stats *stats,
 	    ((stats->best_cpu != prev_cpu &&
 	      stats->min_load > env->cpu_load) || cpu == prev_cpu)) {
 		if (env->need_idle) {
-			if (idle_cpu(cpu)) {
+			if (available_idle_cpu(cpu)) {
 				stats->min_cost = cpu_cost;
 				stats->best_idle_cpu = cpu;
 			}
@@ -3244,7 +3244,7 @@ static void find_best_cpu_in_cluster(struct sched_cluster *c,
 	for_each_cpu(i, &search_cpus) {
 		env->cpu_load = cpu_load_sync(i, env->sync);
 
-		trace_sched_cpu_load_wakeup(cpu_rq(i), idle_cpu(i),
+		trace_sched_cpu_load_wakeup(cpu_rq(i), available_idle_cpu(i),
 			sched_irqload(i),
 			power_cost(i, task_load(env->p) +
 					cpu_cravg_sync(i, env->sync)), 0);
@@ -5419,7 +5419,7 @@ static void throttle_cfs_rq(struct cfs_rq *cfs_rq)
 	raw_spin_unlock(&cfs_b->lock);
 
 	/* Log effect on hmp stats after throttling */
-	trace_sched_cpu_load_cgroup(rq, idle_cpu(cpu_of(rq)),
+	trace_sched_cpu_load_cgroup(rq, available_idle_cpu(cpu_of(rq)),
 			     sched_irqload(cpu_of(rq)),
 			     power_cost(cpu_of(rq), 0),
 			     cpu_temp(cpu_of(rq)));
@@ -5476,7 +5476,7 @@ void unthrottle_cfs_rq(struct cfs_rq *cfs_rq)
 		resched_curr(rq);
 
 	/* Log effect on hmp stats after un-throttling */
-	trace_sched_cpu_load_cgroup(rq, idle_cpu(cpu_of(rq)),
+	trace_sched_cpu_load_cgroup(rq, available_idle_cpu(cpu_of(rq)),
 			     sched_irqload(cpu_of(rq)),
 			     power_cost(cpu_of(rq), 0),
 			     cpu_temp(cpu_of(rq)));
@@ -7484,7 +7484,7 @@ find_idlest_group_cpu(struct sched_group *group, struct task_struct *p, int this
 
 	/* Traverse only the allowed CPUs */
 	for_each_cpu_and(i, sched_group_cpus(group), tsk_cpus_allowed(p)) {
-		if (idle_cpu(i)) {
+		if (available_idle_cpu(i)) {
 			struct rq *rq = cpu_rq(i);
 			struct cpuidle_state *idle = idle_get_state(rq);
 			if (idle && idle->exit_latency < min_exit_latency) {
@@ -7595,7 +7595,7 @@ static int select_idle_sibling(struct task_struct *p, int prev, int target)
 	schedstat_inc(this_rq(), eas_stats.sis_attempts);
 
 	if (!sysctl_sched_cstate_aware) {
-		if (idle_cpu(target)) {
+		if (available_idle_cpu(target)) {
 			schedstat_inc(p, se.statistics.nr_wakeups_sis_idle);
 			schedstat_inc(this_rq(), eas_stats.sis_idle);
 			return target;
@@ -7604,7 +7604,7 @@ static int select_idle_sibling(struct task_struct *p, int prev, int target)
 		/*
 		 * If the prevous cpu is cache affine and idle, don't be stupid.
 		 */
-		if (prev != target && cpus_share_cache(prev, target) && idle_cpu(prev)) {
+		if (prev != target && cpus_share_cache(prev, target) && available_idle_cpu(prev)) {
 			schedstat_inc(p, se.statistics.nr_wakeups_sis_cache_affine);
 			schedstat_inc(this_rq(), eas_stats.sis_cache_affine);
 			return prev;
@@ -7633,7 +7633,7 @@ static int select_idle_sibling(struct task_struct *p, int prev, int target)
 					unsigned long new_usage = boosted_task_util(p);
 					unsigned long capacity_orig = capacity_orig_of(i);
 
-					if (new_usage > capacity_orig || !idle_cpu(i))
+					if (new_usage > capacity_orig || !available_idle_cpu(i))
 						goto next;
 
 					if (i == target && new_usage <= capacity_curr_of(target)) {
@@ -7652,7 +7652,7 @@ static int select_idle_sibling(struct task_struct *p, int prev, int target)
 				}
 			} else {
 				for_each_cpu(i, sched_group_cpus(sg)) {
-					if (i == target || !idle_cpu(i))
+					if (i == target || !available_idle_cpu(i))
 						goto next;
 				}
 
@@ -7819,7 +7819,7 @@ static inline int find_best_target(struct task_struct *p, int *backup_cpu,
 				 * Case A.1: IDLE CPU
 				 * Return the first IDLE CPU we find.
 				 */
-				if (idle_cpu(i)) {
+				if (available_idle_cpu(i)) {
 					schedstat_inc(p, se.statistics.nr_wakeups_fbt_pref_idle);
 					schedstat_inc(this_rq(), eas_stats.fbt_pref_idle);
 
@@ -7898,7 +7898,7 @@ static inline int find_best_target(struct task_struct *p, int *backup_cpu,
 			 * will take care to ensure the minimization of energy
 			 * consumptions without affecting performance.
 			 */
-			if (idle_cpu(i)) {
+			if (available_idle_cpu(i)) {
 				int idle_idx = idle_get_state_idx(cpu_rq(i));
 
 				/* Select idle CPU with lower cap_orig */
@@ -8064,7 +8064,7 @@ static int select_energy_cpu_brute(struct task_struct *p, int prev_cpu, int sync
 		goto unlock;
 	if (tmp_target >= 0) {
 		target_cpu = tmp_target;
-		if ((boosted || prefer_idle) && idle_cpu(target_cpu)) {
+		if ((boosted || prefer_idle) && available_idle_cpu(target_cpu)) {
 			schedstat_inc(p, se.statistics.nr_wakeups_secb_idle_bt);
 			schedstat_inc(this_rq(), eas_stats.secb_idle_bt);
 			goto unlock;
@@ -9796,7 +9796,7 @@ static inline void update_sg_lb_stats(struct lb_env *env,
 	for_each_cpu_and(i, sched_group_cpus(group), env->cpus) {
 		struct rq *rq = cpu_rq(i);
 
-		trace_sched_cpu_load_lb(cpu_rq(i), idle_cpu(i),
+		trace_sched_cpu_load_lb(cpu_rq(i), available_idle_cpu(i),
 				     sched_irqload(i),
 				     power_cost(i, 0),
 				     cpu_temp(i));
@@ -9837,7 +9837,7 @@ static inline void update_sg_lb_stats(struct lb_env *env,
 		/*
 		 * No need to call idle_cpu() if nr_running is not 0
 		 */
-		if (!nr_running && idle_cpu(i))
+		if (!nr_running && available_idle_cpu(i))
 			sgs->idle_cpus++;
 
 		if (energy_aware() && cpu_overutilized(i))
@@ -10685,7 +10685,7 @@ static int should_we_balance(struct lb_env *env)
 	sg_mask = sched_group_mask(sg);
 	/* Try to find first idle cpu */
 	for_each_cpu_and(cpu, sg_cpus, env->cpus) {
-		if (!cpumask_test_cpu(cpu, sg_mask) || !idle_cpu(cpu) ||
+		if (!cpumask_test_cpu(cpu, sg_mask) || !available_idle_cpu(cpu) ||
 		    cpu_isolated(cpu))
 			continue;
 
@@ -11292,7 +11292,7 @@ static inline int find_new_hmp_ilb(int type)
 	for_each_domain(call_cpu, sd) {
 		for_each_cpu_and(ilb, nohz.idle_cpus_mask,
 						sched_domain_span(sd)) {
-			if (idle_cpu(ilb) && (type != NOHZ_KICK_RESTRICT ||
+			if (available_idle_cpu(ilb) && (type != NOHZ_KICK_RESTRICT ||
 					cpu_max_power_cost(ilb) <=
 					cpu_max_power_cost(call_cpu))) {
 				rcu_read_unlock();
@@ -11322,7 +11322,7 @@ static inline int find_new_ilb(int type)
 
 	ilb = cpumask_first(nohz.idle_cpus_mask);
 
-	if (ilb < nr_cpu_ids && idle_cpu(ilb))
+	if (ilb < nr_cpu_ids && available_idle_cpu(ilb))
 		return ilb;
 
 	return nr_cpu_ids;
@@ -11528,7 +11528,7 @@ static void rebalance_domains(struct rq *rq, enum cpu_idle_type idle)
 				 * env->dst_cpu, so we can't know our idle
 				 * state even if we migrated tasks. Update it.
 				 */
-				idle = idle_cpu(cpu) ? CPU_IDLE : CPU_NOT_IDLE;
+				idle = available_idle_cpu(cpu) ? CPU_IDLE : CPU_NOT_IDLE;
 			}
 			sd->last_balance = jiffies;
 			interval = get_sd_balance_interval(sd, idle != CPU_IDLE);
@@ -11596,7 +11596,7 @@ static void nohz_idle_balance(struct rq *this_rq, enum cpu_idle_type idle)
 	cpumask_andnot(&cpus, nohz.idle_cpus_mask, cpu_isolated_mask);
 
 	for_each_cpu(balance_cpu, &cpus) {
-		if (balance_cpu == this_cpu || !idle_cpu(balance_cpu))
+		if (balance_cpu == this_cpu || !available_idle_cpu(balance_cpu))
 			continue;
 
 		/*
