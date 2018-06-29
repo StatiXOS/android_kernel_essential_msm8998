@@ -29,6 +29,7 @@
 #include <linux/of_gpio.h>
 #include <linux/delay.h>
 #include <linux/completion.h>
+#include <linux/cpu_input_boost.h>
 
 #if defined(CONFIG_FB)
 #include <linux/notifier.h>
@@ -655,6 +656,7 @@ static long hbtp_input_ioctl_handler(struct file *file, unsigned int cmd,
 			return -EFAULT;
 		}
 
+		cpu_input_boost_kick();
 		hbtp_input_report_events(hbtp, &mt_data);
 		error = 0;
 		break;
