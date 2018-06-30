@@ -334,10 +334,11 @@ static int hbtp_input_report_events(struct hbtp_data *hbtp_data,
 			input_mt_report_slot_state(hbtp_data->input_dev,
 					MT_TOOL_FINGER, tch->active);
 			/*
-			* Cut the loop if coordinates or
-			* pressure are clearly broken/invalid
+			* Cut the loop early if coordinates
+			* are clearly broken/invalid, or
+			* reported pressure is too low.
 			*/
-			if (tch->x <= 0 || tch->y <= 0 || tch->pressure <= 0)
+			if (tch->x < 0 || tch->y < 0 || tch->pressure < 6)
 				continue;
 			if (tch->active) {
 				input_report_abs(hbtp_data->input_dev,
