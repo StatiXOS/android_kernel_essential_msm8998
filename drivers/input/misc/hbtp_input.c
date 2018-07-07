@@ -324,18 +324,16 @@ static int hbtp_input_report_events(struct hbtp_data *hbtp_data,
 	*/
 	for (i = 0; i < HBTP_MAX_FINGER / 2; i++) {
 		tch = &(mt_data->touches[i]);
-
+		/*
+		* Cut the loop early if coordinates
+		* are clearly broken/invalid.
+		*/
+		if (tch->x < 0 || tch->y < 0)
+			continue;
 		if (tch->active || hbtp_data->touch_status[i]) {
 			input_mt_slot(hbtp_data->input_dev, i);
 			input_mt_report_slot_state(hbtp_data->input_dev,
 					MT_TOOL_FINGER, tch->active);
-			/*
-			* Cut the loop early if coordinates
-			* are clearly broken/invalid, or
-			* reported pressure is too low.
-			*/
-			if (tch->x < 0 || tch->y < 0 || tch->pressure < 6)
-				continue;
 			if (tch->active) {
 				input_report_abs(hbtp_data->input_dev,
 						ABS_MT_POSITION_X,
