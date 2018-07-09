@@ -225,7 +225,6 @@ static struct bin_attribute vibdata_attr = {
 
 static struct workqueue_struct *hbtp_wq;
 static struct work_struct hbtp_open_work;
-static struct work_struct hbtp_release_work;
 
 static void hbtp_input_open_work(struct work_struct *work)
 {
@@ -241,19 +240,19 @@ static int hbtp_input_open(struct inode *inode, struct file *file)
 	return 0;
 }
 
-static void hbtp_input_release_work(struct work_struct *work)
+static int hbtp_input_release(struct inode *inode, struct file *file)
 {
-	if (!hbtp->count)
+	mutex_lock(&hbtp->mutex);
+	if (!hbtp->count) {
 		pr_err("%s wasn't opened\n", HBTP_INPUT_NAME);
-
+		mutex_unlock(&hbtp->mutex);
+		return -ENOTTY;
+	}
 	hbtp->count--;
 	if (hbtp->power_sig_enabled)
 		hbtp->power_sig_enabled = false;
-}
+	mutex_unlock(&hbtp->mutex);
 
-static int hbtp_input_release(struct inode *inode, struct file *file)
-{
-	queue_work(hbtp_wq, &hbtp_release_work);
 	return 0;
 }
 
@@ -1620,7 +1619,6 @@ static int __init hbtp_init(void)
 		error = -EFAULT;
 
 	INIT_WORK(&hbtp_open_work, hbtp_input_open_work);
-	INIT_WORK(&hbtp_release_work, hbtp_input_release_work);
 
 	hbtp->sysfs_kobject = kobject_create_and_add("hbtp", kernel_kobj);
 	if (!hbtp->sysfs_kobject)
