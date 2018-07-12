@@ -860,22 +860,11 @@ static long hbtp_input_ioctl(struct file *file, unsigned int cmd,
 	return hbtp_input_ioctl_handler(file, cmd, arg, (void __user *)arg);
 }
 
-#ifdef CONFIG_COMPAT
-static long hbtp_input_compat_ioctl(struct file *file, unsigned int cmd,
-					unsigned long arg)
-{
-	return hbtp_input_ioctl_handler(file, cmd, arg, compat_ptr(arg));
-}
-#endif
-
 static const struct file_operations hbtp_input_fops = {
 	.owner		= THIS_MODULE,
 	.open		= hbtp_input_open,
 	.release	= hbtp_input_release,
 	.unlocked_ioctl	= hbtp_input_ioctl,
-#ifdef CONFIG_COMPAT
-	.compat_ioctl	= hbtp_input_compat_ioctl,
-#endif
 };
 
 static struct miscdevice hbtp_input_misc = {
