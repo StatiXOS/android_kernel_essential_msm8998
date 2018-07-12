@@ -854,7 +854,7 @@ static long hbtp_input_ioctl_handler(struct file *file, unsigned int cmd,
 	return error;
 }
 
-static long hbtp_input_ioctl(struct file *file, unsigned int cmd,
+static inline long hbtp_input_ioctl(struct file *file, unsigned int cmd,
 				unsigned long arg)
 {
 	return hbtp_input_ioctl_handler(file, cmd, arg, (void __user *)arg);
