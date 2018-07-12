@@ -652,6 +652,24 @@ static long hbtp_input_ioctl_handler(struct file *file, unsigned int cmd,
 	enum hbtp_afe_signal afe_signal;
 	enum hbtp_afe_power_ctrl afe_power_ctrl;
 
+	if (cmd == HBTP_SET_TOUCHDATA) {
+		if (!hbtp || !hbtp->input_dev) {
+			pr_err("%s: The input device hasn't been created\n",
+				__func__);
+			return -EFAULT;
+		}
+
+		if (copy_from_user(&mt_data, (void *)arg,
+					sizeof(struct hbtp_input_mt))) {
+			pr_err("%s: Error copying data\n", __func__);
+			return -EFAULT;
+		}
+
+		hbtp_input_report_events(hbtp, &mt_data);
+		/* We need to return here to avoid ugly code */
+		return 0;
+	}
+
 	switch (cmd) {
 	case HBTP_SET_ABSPARAM:
 		if (hbtp && hbtp->input_dev) {
@@ -672,23 +690,6 @@ static long hbtp_input_ioctl_handler(struct file *file, unsigned int cmd,
 		if (error)
 			pr_err("%s, hbtp_input_create_input_dev failed (%d)\n",
 				__func__, error);
-		break;
-
-	case HBTP_SET_TOUCHDATA:
-		if (!hbtp || !hbtp->input_dev) {
-			pr_err("%s: The input device hasn't been created\n",
-				__func__);
-			return -EFAULT;
-		}
-
-		if (copy_from_user(&mt_data, (void *)arg,
-					sizeof(struct hbtp_input_mt))) {
-			pr_err("%s: Error copying data\n", __func__);
-			return -EFAULT;
-		}
-
-		hbtp_input_report_events(hbtp, &mt_data);
-		error = 0;
 		break;
 
 	case HBTP_SET_POWERSTATE:
