@@ -223,33 +223,37 @@ static struct bin_attribute vibdata_attr = {
 	.write = NULL,
 };
 
+static struct workqueue_struct *hbtp_wq;
+static struct work_struct hbtp_open_work;
+static struct work_struct hbtp_release_work;
+
+static void hbtp_input_open_work(struct work_struct *work)
+{
+	if (hbtp->count)
+		pr_err("%s is busy\n", HBTP_INPUT_NAME);
+
+	hbtp->count++;
+}
+
 static int hbtp_input_open(struct inode *inode, struct file *file)
 {
-	mutex_lock(&hbtp->mutex);
-	if (hbtp->count) {
-		pr_err("%s is busy\n", HBTP_INPUT_NAME);
-		mutex_unlock(&hbtp->mutex);
-		return -EBUSY;
-	}
-	hbtp->count++;
-	mutex_unlock(&hbtp->mutex);
-
+	queue_work(hbtp_wq, &hbtp_open_work);
 	return 0;
+}
+
+static void hbtp_input_release_work(struct work_struct *work)
+{
+	if (!hbtp->count)
+		pr_err("%s wasn't opened\n", HBTP_INPUT_NAME);
+
+	hbtp->count--;
+	if (hbtp->power_sig_enabled)
+		hbtp->power_sig_enabled = false;
 }
 
 static int hbtp_input_release(struct inode *inode, struct file *file)
 {
-	mutex_lock(&hbtp->mutex);
-	if (!hbtp->count) {
-		pr_err("%s wasn't opened\n", HBTP_INPUT_NAME);
-		mutex_unlock(&hbtp->mutex);
-		return -ENOTTY;
-	}
-	hbtp->count--;
-	if (hbtp->power_sig_enabled)
-		hbtp->power_sig_enabled = false;
-	mutex_unlock(&hbtp->mutex);
-
+	queue_work(hbtp_wq, &hbtp_release_work);
 	return 0;
 }
 
@@ -1592,6 +1596,13 @@ static int __init hbtp_init(void)
 		pr_err("Failed to register platform driver: %d\n", error);
 		goto err_platform_drv_reg;
 	}
+
+	hbtp_wq = alloc_workqueue("hbtp_wq", WQ_HIGHPRI, 0);
+	if (!hbtp_wq)
+		error = -EFAULT;
+
+	INIT_WORK(&hbtp_open_work, hbtp_input_open_work);
+	INIT_WORK(&hbtp_release_work, hbtp_input_release_work);
 
 	hbtp->sysfs_kobject = kobject_create_and_add("hbtp", kernel_kobj);
 	if (!hbtp->sysfs_kobject)
