@@ -334,12 +334,14 @@ static int hbtp_input_report_events(struct hbtp_data *hbtp_data,
 			input_mt_report_slot_state(hbtp_data->input_dev,
 					MT_TOOL_FINGER, tch->active);
 			if (tch->active) {
+				mutex_lock(&hbtp->mutex);
 				input_report_abs(hbtp_data->input_dev,
 						ABS_MT_POSITION_X,
 						tch->x);
 				input_report_abs(hbtp_data->input_dev,
 						ABS_MT_POSITION_Y,
 						tch->y);
+				mutex_unlock(&hbtp->mutex);
 				input_report_abs(hbtp_data->input_dev,
 						ABS_MT_PRESSURE,
 						tch->pressure);
