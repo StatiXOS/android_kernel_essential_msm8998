@@ -321,7 +321,7 @@ err_input_reg_dev:
 	return error;
 }
 
-static int hbtp_input_report_events(struct hbtp_data *hbtp_data,
+static inline int hbtp_input_report_events(struct hbtp_data *hbtp_data,
 				struct hbtp_input_mt *mt_data)
 {
 	int i;
@@ -641,7 +641,7 @@ err_ddic_rst_pinctrl_enable:
 	return rc;
 }
 
-static long hbtp_input_ioctl_handler(struct file *file, unsigned int cmd,
+static inline long hbtp_input_ioctl_handler(struct file *file, unsigned int cmd,
 				 unsigned long arg, void __user *p)
 {
 	int error = 0;
@@ -879,7 +879,7 @@ static long hbtp_input_ioctl_handler(struct file *file, unsigned int cmd,
 	return error;
 }
 
-static long hbtp_input_ioctl(struct file *file, unsigned int cmd,
+static inline long hbtp_input_ioctl(struct file *file, unsigned int cmd,
 				unsigned long arg)
 {
 	return hbtp_input_ioctl_handler(file, cmd, arg, (void __user *)arg);
