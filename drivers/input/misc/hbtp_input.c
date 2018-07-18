@@ -338,18 +338,6 @@ static int hbtp_input_report_events(struct hbtp_data *hbtp_data,
 				input_report_abs(hbtp_data->input_dev,
 						ABS_MT_TOOL_TYPE,
 						tch->tool);
-				input_report_abs(hbtp_data->input_dev,
-						ABS_MT_TOUCH_MAJOR,
-						tch->major);
-				input_report_abs(hbtp_data->input_dev,
-						ABS_MT_TOUCH_MINOR,
-						tch->minor);
-				input_report_abs(hbtp_data->input_dev,
-						ABS_MT_ORIENTATION,
-						tch->orientation);
-				input_report_abs(hbtp_data->input_dev,
-						ABS_MT_PRESSURE,
-						tch->pressure);
 #ifndef CONFIG_BOARD_MATA
 				/*
 				 * Scale up/down the X-coordinate as per
@@ -378,6 +366,18 @@ static int hbtp_input_report_events(struct hbtp_data *hbtp_data,
 				input_report_abs(hbtp_data->input_dev,
 						ABS_MT_POSITION_Y,
 						tch->y);
+				input_report_abs(hbtp_data->input_dev,
+						ABS_MT_TOUCH_MAJOR,
+						tch->major);
+				input_report_abs(hbtp_data->input_dev,
+						ABS_MT_TOUCH_MINOR,
+						tch->minor);
+				input_report_abs(hbtp_data->input_dev,
+						ABS_MT_ORIENTATION,
+						tch->orientation);
+				input_report_abs(hbtp_data->input_dev,
+						ABS_MT_PRESSURE,
+						tch->pressure);
 			}
 			hbtp_data->touch_status[i] = tch->active;
 		}
