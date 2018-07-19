@@ -338,7 +338,6 @@ static inline int hbtp_input_report_events(struct hbtp_data *hbtp_data,
 				input_report_abs(hbtp_data->input_dev,
 						ABS_MT_TOOL_TYPE,
 						tch->tool);
-#ifndef CONFIG_BOARD_MATA
 				/*
 				 * Scale up/down the X-coordinate as per
 				 * DT property
@@ -348,11 +347,9 @@ static inline int hbtp_input_report_events(struct hbtp_data *hbtp_data,
 						hbtp_data->des_maxx > 0)
 					tch->x = (tch->x * hbtp_data->des_maxx)
 							/ hbtp_data->def_maxx;
-#endif
 				input_report_abs(hbtp_data->input_dev,
 						ABS_MT_POSITION_X,
 						tch->x);
-#ifndef CONFIG_BOARD_MATA
 				/*
 				 * Scale up/down the Y-coordinate as per
 				 * DT property
@@ -362,7 +359,6 @@ static inline int hbtp_input_report_events(struct hbtp_data *hbtp_data,
 						hbtp_data->des_maxy > 0)
 					tch->y = (tch->y * hbtp_data->des_maxy)
 							/ hbtp_data->def_maxy;
-#endif
 				input_report_abs(hbtp_data->input_dev,
 						ABS_MT_POSITION_Y,
 						tch->y);
