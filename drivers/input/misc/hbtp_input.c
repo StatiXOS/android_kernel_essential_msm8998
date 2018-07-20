@@ -300,7 +300,7 @@ err_input_reg_dev:
 	return error;
 }
 
-static inline int hbtp_input_report_events(struct hbtp_data *hbtp_data,
+static int hbtp_input_report_events(struct hbtp_data *hbtp_data,
 				struct hbtp_input_mt *mt_data)
 {
 	int i;
