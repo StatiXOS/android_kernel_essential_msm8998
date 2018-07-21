@@ -316,7 +316,7 @@ static int hbtp_input_report_events(struct hbtp_data *hbtp_data,
 			if (tch->active) {
 				input_report_abs(hbtp_data->input_dev,
 						ABS_MT_TOOL_TYPE, 0);
-				if (hbtp_data->use_scaling) {
+				if (unlikely(hbtp_data->use_scaling)) {
 				/*
 				* Scale up/down the X-coordinate as per
 				* DT property
