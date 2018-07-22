@@ -300,7 +300,7 @@ err_input_reg_dev:
 	return error;
 }
 
-static int hbtp_input_report_events(struct hbtp_data *hbtp_data,
+static void hbtp_input_report_events(struct hbtp_data *hbtp_data,
 				struct hbtp_input_mt *mt_data)
 {
 	int i;
@@ -357,8 +357,6 @@ static int hbtp_input_report_events(struct hbtp_data *hbtp_data,
 
 	input_report_key(hbtp->input_dev, BTN_TOUCH, mt_data->num_touches > 0);
 	input_sync(hbtp->input_dev);
-
-	return 0;
 }
 
 static int reg_set_load_check(struct regulator *reg, int load_uA)
