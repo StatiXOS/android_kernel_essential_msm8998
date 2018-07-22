@@ -303,35 +303,21 @@ err_input_reg_dev:
 static void hbtp_input_report_events(struct hbtp_data *hbtp_data,
 				struct hbtp_input_mt *mt_data)
 {
-	int i;
+	int i = 0;
 	struct hbtp_input_touch *tch;
 
-	for (i = 0; i < HBTP_MAX_FINGER; i++) {
-		tch = &(mt_data->touches[i]);
+	do {
+		tch = &(mt_data->touches[i++]);
 		if (tch->active || hbtp_data->touch_status[i]) {
 			input_mt_slot(hbtp_data->input_dev, i);
-			input_mt_report_slot_state(hbtp_data->input_dev,
-					MT_TOOL_FINGER, tch->active);
 
 			if (tch->active) {
+				input_mt_report_slot_state(hbtp_data->input_dev,
+						MT_TOOL_FINGER, 1);
 				input_report_abs(hbtp_data->input_dev,
 						ABS_MT_TOOL_TYPE, 0);
-				if (unlikely(hbtp_data->use_scaling)) {
-				/*
-				* Scale up/down the X-coordinate as per
-				* DT property
-				*/
-				if (hbtp_data->def_maxx && hbtp_data->des_maxx)
-					tch->x = (tch->x * hbtp_data->des_maxx)
-							/ hbtp_data->def_maxx;
-				/*
-				 * Scale up/down the Y-coordinate as per
-				 * DT property
-				 */
-				if (hbtp_data->def_maxy && hbtp_data->des_maxy)
-					tch->y = (tch->y * hbtp_data->des_maxy)
-							/ hbtp_data->def_maxy;
-				}
+				input_report_key(hbtp->input_dev,
+						BTN_TOUCH, 1);
 				input_report_abs(hbtp_data->input_dev,
 						ABS_MT_POSITION_X,
 						tch->x);
@@ -350,12 +336,16 @@ static void hbtp_input_report_events(struct hbtp_data *hbtp_data,
 				input_report_abs(hbtp_data->input_dev,
 						ABS_MT_PRESSURE,
 						tch->pressure);
+			} else {
+				input_mt_report_slot_state(hbtp_data->input_dev,
+						MT_TOOL_FINGER, 0);
+				input_report_key(hbtp->input_dev,
+						BTN_TOUCH, 0);
 			}
 			hbtp_data->touch_status[i] = tch->active;
 		}
-	}
+	} while (i < HBTP_MAX_FINGER);
 
-	input_report_key(hbtp->input_dev, BTN_TOUCH, mt_data->num_touches > 0);
 	input_sync(hbtp->input_dev);
 }
 
