@@ -316,8 +316,6 @@ static void hbtp_input_report_events(struct hbtp_data *hbtp_data,
 						MT_TOOL_FINGER, 1);
 				input_report_abs(hbtp_data->input_dev,
 						ABS_MT_TOOL_TYPE, 0);
-				input_report_key(hbtp->input_dev,
-						BTN_TOUCH, 1);
 				input_report_abs(hbtp_data->input_dev,
 						ABS_MT_POSITION_X,
 						tch->x);
@@ -339,13 +337,12 @@ static void hbtp_input_report_events(struct hbtp_data *hbtp_data,
 			} else {
 				input_mt_report_slot_state(hbtp_data->input_dev,
 						MT_TOOL_FINGER, 0);
-				input_report_key(hbtp->input_dev,
-						BTN_TOUCH, 0);
 			}
 			hbtp_data->touch_status[i] = tch->active;
 		}
 	} while (i < HBTP_MAX_FINGER);
 
+	input_report_key(hbtp->input_dev, BTN_TOUCH, mt_data->num_touches > 0);
 	input_sync(hbtp->input_dev);
 }
 
