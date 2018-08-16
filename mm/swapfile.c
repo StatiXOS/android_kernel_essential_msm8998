@@ -133,7 +133,7 @@ __try_to_reclaim_swap(struct swap_info_struct *si, unsigned long offset)
 		ret = try_to_free_swap(page);
 		unlock_page(page);
 	}
-	page_cache_release(page);
+	put_page(page);
 	return ret;
 }
 
@@ -1038,7 +1038,7 @@ int free_swap_and_cache(swp_entry_t entry)
 			page = find_get_page(swap_address_space(entry),
 						entry.val);
 			if (page && !trylock_page(page)) {
-				page_cache_release(page);
+				put_page(page);
 				page = NULL;
 			}
 		}
@@ -1056,7 +1056,7 @@ int free_swap_and_cache(swp_entry_t entry)
 			SetPageDirty(page);
 		}
 		unlock_page(page);
-		page_cache_release(page);
+		put_page(page);
 	}
 	return p != NULL;
 }
@@ -1566,7 +1566,7 @@ int try_to_unuse(unsigned int type, bool frontswap,
 		}
 		if (retval) {
 			unlock_page(page);
-			page_cache_release(page);
+			put_page(page);
 			break;
 		}
 
@@ -1618,7 +1618,7 @@ int try_to_unuse(unsigned int type, bool frontswap,
 		 */
 		SetPageDirty(page);
 		unlock_page(page);
-		page_cache_release(page);
+		put_page(page);
 
 		/*
 		 * Make sure that we aren't completely killing
@@ -2649,7 +2649,7 @@ bad_swap:
 out:
 	if (page && !IS_ERR(page)) {
 		kunmap(page);
-		page_cache_release(page);
+		put_page(page);
 	}
 	if (name)
 		putname(name);
