@@ -29,7 +29,6 @@
 #include <linux/of_gpio.h>
 #include <linux/delay.h>
 #include <linux/completion.h>
-#include <linux/cpu_input_boost.h>
 
 #if defined(CONFIG_FB)
 #include <linux/notifier.h>
@@ -42,7 +41,6 @@
 #define HBTP_PINCTRL_VALID_STATE_CNT		(2)
 #define HBTP_HOLD_DURATION_US			(10)
 #define HBTP_PINCTRL_DDIC_SEQ_NUM		(4)
-#define HBTP_WAIT_TIMEOUT_MS			2000
 
 struct hbtp_data {
 	struct platform_device *pdev;
@@ -51,7 +49,7 @@ struct hbtp_data {
 	struct mutex mutex;
 	struct mutex sensormutex;
 	struct hbtp_sensor_data *sensor_data;
-	bool touch_status[HBTP_MAX_FINGER / 2];
+	bool touch_status[HBTP_MAX_FINGER];
 #if defined(CONFIG_FB)
 	struct notifier_block fb_notif;
 #endif
@@ -88,14 +86,12 @@ struct hbtp_data {
 	bool override_disp_coords;
 	bool manage_afe_power_ana;
 	bool manage_power_dig;
-	bool regulator_enabled;
 	u32 power_on_delay;
 	u32 power_off_delay;
 	bool manage_pin_ctrl;
 	bool init_completion_done_once;
 	s16 ROI[MAX_ROI_SIZE];
 	s16 accelBuffer[MAX_ACCEL_SIZE];
-	struct kobject *sysfs_kobject;
 };
 
 static struct hbtp_data *hbtp;
@@ -124,14 +120,6 @@ static int fb_notifier_callback(struct notifier_block *self,
 		pr_debug("evdata is NULL");
 		return 0;
 	}
-	if (!evdata->data) {
-		pr_debug("evdata->data is NULL");
-		return 0;
-	}
-	if (!hbtp_data) {
-		pr_debug("hbtp_data is NULL");
-		return 0;
-	}
 	fbi = evdata->info;
 
 	/*
@@ -144,8 +132,9 @@ static int fb_notifier_callback(struct notifier_block *self,
 		return 0;
 	}
 
-	if (event == FB_EARLY_EVENT_BLANK ||
-		event == FB_R_EARLY_EVENT_BLANK) {
+	if (evdata->data && hbtp_data &&
+		(event == FB_EARLY_EVENT_BLANK ||
+		event == FB_R_EARLY_EVENT_BLANK)) {
 		blank = *(int *)(evdata->data);
 		lcd_state = hbtp->lcd_state;
 		if (event == FB_EARLY_EVENT_BLANK) {
@@ -154,6 +143,14 @@ static int fb_notifier_callback(struct notifier_block *self,
 				pr_debug("%s: receives EARLY_BLANK:UNBLANK\n",
 					__func__);
 				hbtp_fb_early_resume(hbtp_data);
+			} else if (blank == FB_BLANK_POWERDOWN &&
+					lcd_state <= FB_BLANK_NORMAL) {
+				pr_debug("%s: receives EARLY_BLANK:POWERDOWN\n",
+					__func__);
+				hbtp_fb_early_suspend(hbtp_data);
+			} else {
+				pr_debug("%s: receives EARLY_BLANK:%d in %d state\n",
+					__func__, blank, lcd_state);
 			}
 		} else if (event == FB_R_EARLY_EVENT_BLANK) {
 			if (blank <= FB_BLANK_NORMAL) {
@@ -161,11 +158,19 @@ static int fb_notifier_callback(struct notifier_block *self,
 					__func__);
 				hbtp_fb_early_suspend(hbtp_data);
 				hbtp_fb_suspend(hbtp_data);
+			} else if (blank == FB_BLANK_POWERDOWN) {
+				pr_debug("%s: receives R_EARLY_BALNK:POWERDOWN\n",
+					__func__);
+				hbtp_fb_revert_resume(hbtp_data);
+			} else {
+				pr_debug("%s: receives R_EARLY_BALNK:%d in %d state\n",
+					__func__, blank, lcd_state);
 			}
 		}
 	}
 
-	if (event == FB_EVENT_BLANK) {
+	if (evdata->data && hbtp_data &&
+		event == FB_EVENT_BLANK) {
 		blank = *(int *)(evdata->data);
 		lcd_state = hbtp->lcd_state;
 		if (blank == FB_BLANK_POWERDOWN &&
@@ -173,9 +178,11 @@ static int fb_notifier_callback(struct notifier_block *self,
 			pr_debug("%s: receives BLANK:POWERDOWN\n", __func__);
 			hbtp_fb_suspend(hbtp_data);
 		} else if (blank <= FB_BLANK_NORMAL &&
-			lcd_state == FB_BLANK_POWERDOWN) {
+				lcd_state == FB_BLANK_POWERDOWN) {
 			pr_debug("%s: receives BLANK:UNBLANK\n", __func__);
-			hbtp_fb_resume(hbtp_data);
+		} else {
+			pr_debug("%s: receives BLANK:%d in %d state\n",
+				__func__, blank, lcd_state);
 		}
 		hbtp_data->lcd_state = blank;
 	}
@@ -223,37 +230,33 @@ static struct bin_attribute vibdata_attr = {
 	.write = NULL,
 };
 
-static struct workqueue_struct *hbtp_wq;
-static struct work_struct hbtp_open_work;
-static struct work_struct hbtp_release_work;
-
-static void hbtp_input_open_work(struct work_struct *work)
-{
-	if (hbtp->count)
-		pr_err("%s is busy\n", HBTP_INPUT_NAME);
-
-	hbtp->count++;
-}
-
 static int hbtp_input_open(struct inode *inode, struct file *file)
 {
-	queue_work(hbtp_wq, &hbtp_open_work);
+	mutex_lock(&hbtp->mutex);
+	if (hbtp->count) {
+		pr_err("%s is busy\n", HBTP_INPUT_NAME);
+		mutex_unlock(&hbtp->mutex);
+		return -EBUSY;
+	}
+	hbtp->count++;
+	mutex_unlock(&hbtp->mutex);
+
 	return 0;
-}
-
-static void hbtp_input_release_work(struct work_struct *work)
-{
-	if (!hbtp->count)
-		pr_err("%s wasn't opened\n", HBTP_INPUT_NAME);
-
-	hbtp->count--;
-	if (hbtp->power_sig_enabled)
-		hbtp->power_sig_enabled = false;
 }
 
 static int hbtp_input_release(struct inode *inode, struct file *file)
 {
-	queue_work(hbtp_wq, &hbtp_release_work);
+	mutex_lock(&hbtp->mutex);
+	if (!hbtp->count) {
+		pr_err("%s wasn't opened\n", HBTP_INPUT_NAME);
+		mutex_unlock(&hbtp->mutex);
+		return -ENOTTY;
+	}
+	hbtp->count--;
+	if (hbtp->power_sig_enabled)
+		hbtp->power_sig_enabled = false;
+	mutex_unlock(&hbtp->mutex);
+
 	return 0;
 }
 
@@ -282,7 +285,7 @@ static int hbtp_input_create_input_dev(struct hbtp_input_absinfo *absinfo)
 		__set_bit(i, input_dev->keybit);
 
 	/* For multi touch */
-	input_mt_init_slots(input_dev, HBTP_MAX_FINGER / 2, 0);
+	input_mt_init_slots(input_dev, HBTP_MAX_FINGER, 0);
 	for (i = 0; i <= ABS_MT_LAST - ABS_MT_FIRST; i++) {
 		abs = absinfo + i;
 		if (abs->active) {
@@ -322,29 +325,17 @@ static int hbtp_input_report_events(struct hbtp_data *hbtp_data,
 	int i;
 	struct hbtp_input_touch *tch;
 
-	/*
-	* Why bother reporting 20 touches every time
-	* if we only support 10?
-	*/
-	for (i = 0; i < HBTP_MAX_FINGER / 2; i++) {
+	for (i = 0; i < HBTP_MAX_FINGER; i++) {
 		tch = &(mt_data->touches[i]);
-
 		if (tch->active || hbtp_data->touch_status[i]) {
 			input_mt_slot(hbtp_data->input_dev, i);
 			input_mt_report_slot_state(hbtp_data->input_dev,
 					MT_TOOL_FINGER, tch->active);
+
 			if (tch->active) {
-				mutex_lock(&hbtp->mutex);
 				input_report_abs(hbtp_data->input_dev,
-						ABS_MT_POSITION_X,
-						tch->x);
-				input_report_abs(hbtp_data->input_dev,
-						ABS_MT_POSITION_Y,
-						tch->y);
-				mutex_unlock(&hbtp->mutex);
-				input_report_abs(hbtp_data->input_dev,
-						ABS_MT_PRESSURE,
-						tch->pressure);
+						ABS_MT_TOOL_TYPE,
+						tch->tool);
 				input_report_abs(hbtp_data->input_dev,
 						ABS_MT_TOUCH_MAJOR,
 						tch->major);
@@ -354,6 +345,35 @@ static int hbtp_input_report_events(struct hbtp_data *hbtp_data,
 				input_report_abs(hbtp_data->input_dev,
 						ABS_MT_ORIENTATION,
 						tch->orientation);
+				input_report_abs(hbtp_data->input_dev,
+						ABS_MT_PRESSURE,
+						tch->pressure);
+				/*
+				 * Scale up/down the X-coordinate as per
+				 * DT property
+				 */
+				if (hbtp_data->use_scaling &&
+						hbtp_data->def_maxx > 0 &&
+						hbtp_data->des_maxx > 0)
+					tch->x = (tch->x * hbtp_data->des_maxx)
+							/ hbtp_data->def_maxx;
+
+				input_report_abs(hbtp_data->input_dev,
+						ABS_MT_POSITION_X,
+						tch->x);
+				/*
+				 * Scale up/down the Y-coordinate as per
+				 * DT property
+				 */
+				if (hbtp_data->use_scaling &&
+						hbtp_data->def_maxy > 0 &&
+						hbtp_data->des_maxy > 0)
+					tch->y = (tch->y * hbtp_data->des_maxy)
+							/ hbtp_data->def_maxy;
+
+				input_report_abs(hbtp_data->input_dev,
+						ABS_MT_POSITION_Y,
+						tch->y);
 			}
 			hbtp_data->touch_status[i] = tch->active;
 		}
@@ -388,11 +408,6 @@ static int hbtp_pdev_power_on(struct hbtp_data *hbtp, bool on)
 
 	if (!on)
 		goto reg_off;
-
-	if (hbtp->regulator_enabled) {
-		pr_debug("%s: regulator already enabled\n", __func__);
-		return 0;
-	}
 
 	if (hbtp->vcc_ana) {
 		ret = reg_set_load_check(hbtp->vcc_ana,
@@ -437,16 +452,9 @@ static int hbtp_pdev_power_on(struct hbtp_data *hbtp, bool on)
 		}
 	}
 
-	hbtp->regulator_enabled = true;
-
 	return 0;
 
 reg_off:
-	if (!hbtp->regulator_enabled) {
-		pr_debug("%s: regulator not enabled\n", __func__);
-		return 0;
-	}
-
 	if (hbtp->vcc_dig) {
 		reg_set_load_check(hbtp->vcc_dig, 0);
 		regulator_disable(hbtp->vcc_dig);
@@ -463,9 +471,6 @@ reg_off:
 		reg_set_load_check(hbtp->vcc_ana, 0);
 		regulator_disable(hbtp->vcc_ana);
 	}
-
-	hbtp->regulator_enabled = false;
-
 	return 0;
 }
 
@@ -628,24 +633,6 @@ static long hbtp_input_ioctl_handler(struct file *file, unsigned int cmd,
 	enum hbtp_afe_signal afe_signal;
 	enum hbtp_afe_power_ctrl afe_power_ctrl;
 
-	if (cmd == HBTP_SET_TOUCHDATA) {
-		if (!hbtp || !hbtp->input_dev) {
-			pr_err("%s: The input device hasn't been created\n",
-				__func__);
-			return -EFAULT;
-		}
-
-		if (copy_from_user(&mt_data, (void *)arg,
-					sizeof(struct hbtp_input_mt))) {
-			pr_err("%s: Error copying data\n", __func__);
-			return -EFAULT;
-		}
-
-		hbtp_input_report_events(hbtp, &mt_data);
-		/* We need to return here to avoid ugly code */
-		return 0;
-	}
-
 	switch (cmd) {
 	case HBTP_SET_ABSPARAM:
 		if (hbtp && hbtp->input_dev) {
@@ -666,6 +653,23 @@ static long hbtp_input_ioctl_handler(struct file *file, unsigned int cmd,
 		if (error)
 			pr_err("%s, hbtp_input_create_input_dev failed (%d)\n",
 				__func__, error);
+		break;
+
+	case HBTP_SET_TOUCHDATA:
+		if (!hbtp || !hbtp->input_dev) {
+			pr_err("%s: The input device hasn't been created\n",
+				__func__);
+			return -EFAULT;
+		}
+
+		if (copy_from_user(&mt_data, (void *)arg,
+					sizeof(struct hbtp_input_mt))) {
+			pr_err("%s: Error copying data\n", __func__);
+			return -EFAULT;
+		}
+
+		hbtp_input_report_events(hbtp, &mt_data);
+		error = 0;
 		break;
 
 	case HBTP_SET_POWERSTATE:
@@ -855,17 +859,28 @@ static long hbtp_input_ioctl_handler(struct file *file, unsigned int cmd,
 	return error;
 }
 
-static inline long hbtp_input_ioctl(struct file *file, unsigned int cmd,
+static long hbtp_input_ioctl(struct file *file, unsigned int cmd,
 				unsigned long arg)
 {
 	return hbtp_input_ioctl_handler(file, cmd, arg, (void __user *)arg);
 }
+
+#ifdef CONFIG_COMPAT
+static long hbtp_input_compat_ioctl(struct file *file, unsigned int cmd,
+					unsigned long arg)
+{
+	return hbtp_input_ioctl_handler(file, cmd, arg, compat_ptr(arg));
+}
+#endif
 
 static const struct file_operations hbtp_input_fops = {
 	.owner		= THIS_MODULE,
 	.open		= hbtp_input_open,
 	.release	= hbtp_input_release,
 	.unlocked_ioctl	= hbtp_input_ioctl,
+#ifdef CONFIG_COMPAT
+	.compat_ioctl	= hbtp_input_compat_ioctl,
+#endif
 };
 
 static struct miscdevice hbtp_input_misc = {
@@ -1259,9 +1274,8 @@ static int hbtp_fb_suspend(struct hbtp_data *ts)
 			pr_debug("%s: power_sig is enabled, wait for signal\n",
 					__func__);
 			mutex_unlock(&hbtp->mutex);
-			rc = wait_for_completion_interruptible_timeout(
-				&hbtp->power_suspend_sig,
-				msecs_to_jiffies(HBTP_WAIT_TIMEOUT_MS));
+			rc = wait_for_completion_interruptible(
+					&hbtp->power_suspend_sig);
 			if (rc != 0) {
 				pr_err("%s: wait for suspend is interrupted\n",
 						__func__);
@@ -1332,12 +1346,11 @@ static int hbtp_fb_early_resume(struct hbtp_data *ts)
 		if (ts->power_sig_enabled) {
 			pr_err("%s: power_sig is enabled, wait for signal\n",
 					__func__);
-				mutex_unlock(&hbtp->mutex);
-				rc = wait_for_completion_interruptible_timeout(
-					&hbtp->power_resume_sig,
-					msecs_to_jiffies(HBTP_WAIT_TIMEOUT_MS));
-				if (rc != 0) {
-					pr_err("%s: wait for resume is interrupted\n",
+			mutex_unlock(&hbtp->mutex);
+			rc = wait_for_completion_interruptible(
+					&hbtp->power_resume_sig);
+			if (rc != 0) {
+				pr_err("%s: wait for resume is interrupted\n",
 						__func__);
 			}
 			mutex_lock(&hbtp->mutex);
@@ -1500,41 +1513,6 @@ static struct platform_driver hbtp_pdev_driver = {
 	},
 };
 
-static ssize_t hbtp_display_pwr_store(struct kobject *kobj,
-		struct kobj_attribute *attr, const char *buf, size_t count)
-{
-	u32 status;
-	ssize_t ret;
-	char *envp[2] = {HBTP_EVENT_TYPE_DISPLAY, NULL};
-
-	mutex_lock(&hbtp->mutex);
-	ret = kstrtou32(buf, 10, &status);
-	if (ret) {
-		pr_err("hbtp: ret error: %zd\n", ret);
-		mutex_unlock(&hbtp->mutex);
-		return ret;
-	}
-	if (!hbtp || !hbtp->input_dev) {
-		pr_err("hbtp: hbtp or hbtp->input_dev not ready!\n");
-		mutex_unlock(&hbtp->mutex);
-		return ret;
-	}
-	if (status) {
-		pr_debug("hbtp: display power on!\n");
-		kobject_uevent_env(&hbtp->input_dev->dev.kobj,
-			KOBJ_ONLINE, envp);
-	} else {
-		pr_debug("hbtp: display power off!\n");
-		kobject_uevent_env(&hbtp->input_dev->dev.kobj,
-			KOBJ_OFFLINE, envp);
-	}
-	mutex_unlock(&hbtp->mutex);
-	return count;
-}
-
-static struct kobj_attribute hbtp_display_attribute =
-		__ATTR(display_pwr, 0660, NULL, hbtp_display_pwr_store);
-
 static int __init hbtp_init(void)
 {
 	int error;
@@ -1599,23 +1577,6 @@ static int __init hbtp_init(void)
 		goto err_platform_drv_reg;
 	}
 
-	hbtp_wq = alloc_workqueue("hbtp_wq", WQ_HIGHPRI, 0);
-	if (!hbtp_wq)
-		error = -EFAULT;
-
-	INIT_WORK(&hbtp_open_work, hbtp_input_open_work);
-	INIT_WORK(&hbtp_release_work, hbtp_input_release_work);
-
-	hbtp->sysfs_kobject = kobject_create_and_add("hbtp", kernel_kobj);
-	if (!hbtp->sysfs_kobject)
-		pr_err("%s: Could not create sysfs kobject\n", __func__);
-	else {
-		error = sysfs_create_file(hbtp->sysfs_kobject,
-			&hbtp_display_attribute.attr);
-		if (error)
-			pr_err("failed to create the display_pwr sysfs\n");
-	}
-
 	return 0;
 
 err_platform_drv_reg:
@@ -1660,5 +1621,5 @@ static void __exit hbtp_exit(void)
 MODULE_DESCRIPTION("Kernel driver to support host based touch processing");
 MODULE_LICENSE("GPLv2");
 
-late_initcall(hbtp_init);
+module_init(hbtp_init);
 module_exit(hbtp_exit);
