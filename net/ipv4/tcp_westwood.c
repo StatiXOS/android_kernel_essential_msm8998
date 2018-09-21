@@ -43,8 +43,8 @@ struct westwood {
 };
 
 /* TCP Westwood functions and constants */
-static const int tcp_westwood_rtt_min = 37;
-static const int tcp_westwood_init_rtt = 1800;
+static const int tcp_westwood_rtt_min = 50;
+static const int tcp_westwood_init_rtt = 2000;
 
 /*
  * @tcp_westwood_create
