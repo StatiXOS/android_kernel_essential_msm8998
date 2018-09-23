@@ -394,6 +394,7 @@ device_param_cb(managed_online_cpus, &param_ops_managed_online_cpus,
  * Userspace sends cpu#:min_freq_value to vote for min_freq_value as the new
  * scaling_min. To withdraw its vote it needs to enter cpu#:0
  */
+#ifdef MSM_PERFORMANCE_SET_FREQ
 static int set_cpu_min_freq(const char *buf, const struct kernel_param *kp)
 {
 	int i, j, ntokens = 0;
@@ -451,9 +452,14 @@ static int set_cpu_min_freq(const char *buf, const struct kernel_param *kp)
 			cpumask_clear_cpu(j, limit_mask);
 	}
 	put_online_cpus();
-
 	return 0;
 }
+#else
+static int set_cpu_min_freq(const char *buf, const struct kernel_param *kp)
+{
+	return 0;
+}
+#endif
 
 static int get_cpu_min_freq(char *buf, const struct kernel_param *kp)
 {
@@ -477,6 +483,7 @@ module_param_cb(cpu_min_freq, &param_ops_cpu_min_freq, NULL, 0644);
  * Userspace sends cpu#:max_freq_value to vote for max_freq_value as the new
  * scaling_max. To withdraw its vote it needs to enter cpu#:UINT_MAX
  */
+#ifdef MSM_PERFORMANCE_SET_FREQ
 static int set_cpu_max_freq(const char *buf, const struct kernel_param *kp)
 {
 	int i, j, ntokens = 0;
@@ -529,6 +536,12 @@ static int set_cpu_max_freq(const char *buf, const struct kernel_param *kp)
 
 	return 0;
 }
+#else
+static int set_cpu_max_freq(const char *buf, const struct kernel_param *kp)
+{
+	return 0;
+}
+#endif
 
 static int get_cpu_max_freq(char *buf, const struct kernel_param *kp)
 {
