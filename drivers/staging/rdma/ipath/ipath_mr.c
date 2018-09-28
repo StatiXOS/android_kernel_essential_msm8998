@@ -86,7 +86,7 @@ static struct ipath_mr *alloc_mr(int count,
 
 	/* Allocate struct plus pointers to first level page tables. */
 	m = (count + IPATH_SEGSZ - 1) / IPATH_SEGSZ;
-	mr = kmalloc(struct_size(mr, mr.map, m), GFP_KERNEL);
+	mr = kmalloc(sizeof *mr + m * sizeof mr->mr.map[0], GFP_KERNEL);
 	if (!mr)
 		goto done;
 
@@ -288,8 +288,7 @@ struct ib_fmr *ipath_alloc_fmr(struct ib_pd *pd, int mr_access_flags,
 
 	/* Allocate struct plus pointers to first level page tables. */
 	m = (fmr_attr->max_pages + IPATH_SEGSZ - 1) / IPATH_SEGSZ;
-	fmr = kmalloc(struct_size(fmr, mr.map, m),
-		      GFP_KERNEL);
+	fmr = kmalloc(sizeof *fmr + m * sizeof fmr->mr.map[0], GFP_KERNEL);
 	if (!fmr)
 		goto bail;
 

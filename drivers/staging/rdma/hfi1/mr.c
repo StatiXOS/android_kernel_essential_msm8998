@@ -160,7 +160,7 @@ static struct hfi1_mr *alloc_mr(int count, struct ib_pd *pd)
 
 	/* Allocate struct plus pointers to first level page tables. */
 	m = (count + HFI1_SEGSZ - 1) / HFI1_SEGSZ;
-	mr = kzalloc(struct_size(mr, mr.map, m), GFP_KERNEL);
+	mr = kzalloc(sizeof(*mr) + m * sizeof(mr->mr.map[0]), GFP_KERNEL);
 	if (!mr)
 		goto bail;
 
@@ -383,8 +383,7 @@ struct ib_fmr *hfi1_alloc_fmr(struct ib_pd *pd, int mr_access_flags,
 
 	/* Allocate struct plus pointers to first level page tables. */
 	m = (fmr_attr->max_pages + HFI1_SEGSZ - 1) / HFI1_SEGSZ;
-	fmr = kzalloc(struct_size(fmr, mr.map, m),
-		      GFP_KERNEL);
+	fmr = kzalloc(sizeof(*fmr) + m * sizeof(fmr->mr.map[0]), GFP_KERNEL);
 	if (!fmr)
 		goto bail;
 
