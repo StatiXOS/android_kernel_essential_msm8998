@@ -58,7 +58,7 @@ extern unsigned int sysctl_sched_window_stats_policy;
 extern unsigned int sysctl_sched_ravg_hist_size;
 extern unsigned int sysctl_sched_cpu_high_irqload;
 extern unsigned int sysctl_sched_init_task_load_pct;
-extern unsigned int  __read_mostly sysctl_sched_spill_nr_run;
+extern __read_mostly unsigned int sysctl_sched_spill_nr_run;
 extern unsigned int sysctl_sched_spill_load_pct;
 extern unsigned int sysctl_sched_upmigrate_pct;
 extern unsigned int sysctl_sched_downmigrate_pct;
@@ -107,7 +107,7 @@ extern unsigned int sysctl_numa_balancing_scan_size;
 extern __read_mostly unsigned int sysctl_sched_migration_cost;
 extern __read_mostly unsigned int sysctl_sched_nr_migrate;
 extern __read_mostly unsigned int sysctl_sched_time_avg;
-extern __read_mostly unsigned int sysctl_sched_shares_window;
+extern unsigned int sysctl_sched_shares_window;
 
 int sched_proc_update_handler(struct ctl_table *table, int write,
 		void __user *buffer, size_t *length,
