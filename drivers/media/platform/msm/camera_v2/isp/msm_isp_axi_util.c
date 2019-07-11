@@ -605,8 +605,7 @@ static int msm_isp_composite_irq(struct vfe_device *vfe_dev,
  *
  * Returns void
  */
-static void msm_isp_update_framedrop_reg(struct msm_vfe_axi_stream *stream_info,
-		uint32_t drop_reconfig)
+static void msm_isp_update_framedrop_reg(struct msm_vfe_axi_stream *stream_info)
 {
 	if (stream_info->stream_type == BURST_STREAM) {
 		if (stream_info->runtime_num_burst_capture == 0 ||
@@ -673,22 +672,8 @@ void msm_isp_process_reg_upd_epoch_irq(struct vfe_device *vfe_dev,
 			__msm_isp_axi_stream_update(stream_info, ts);
 			break;
 		case MSM_ISP_COMP_IRQ_EPOCH:
-			if (stream_info->state == ACTIVE) {
-				struct vfe_device *temp = NULL;
-				struct msm_vfe_common_dev_data *c_data;
-				uint32_t drop_reconfig =
-					vfe_dev->isp_page->drop_reconfig;
-				if (stream_info->num_isp > 1 &&
-					vfe_dev->pdev->id == ISP_VFE0) {
-					c_data = vfe_dev->common_data;
-					temp = c_data->dual_vfe_res->vfe_dev[
-						ISP_VFE1];
-					drop_reconfig =
-						temp->isp_page->drop_reconfig;
-				}
-				msm_isp_update_framedrop_reg(stream_info,
-					drop_reconfig);
-			}
+			if (stream_info->state == ACTIVE)
+				msm_isp_update_framedrop_reg(stream_info);
 			break;
 		default:
 			WARN(1, "Invalid irq %d\n", irq);
