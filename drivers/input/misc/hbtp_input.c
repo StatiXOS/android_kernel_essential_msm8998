@@ -360,6 +360,7 @@ static int hbtp_input_report_events(struct hbtp_data *hbtp_data,
 					MT_TOOL_FINGER, tch->active);
 
 			if (tch->active) {
+				tch->pressure *= 4;
 				input_report_abs(hbtp_data->input_dev,
 						ABS_MT_TOOL_TYPE,
 						tch->tool);
