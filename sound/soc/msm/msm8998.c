@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016-2018, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2016-2019, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -84,8 +84,8 @@
 #define WCN_CDC_SLIM_RX_CH_MAX 2
 #define WCN_CDC_SLIM_TX_CH_MAX 3
 
-#define TDM_CHANNEL_MAX 8
-#define TDM_SLOT_OFFSET_MAX 8
+#define TDM_CHANNEL_MAX 16
+#define TDM_SLOT_OFFSET_MAX 32
 
 #ifdef USE_QC_HIFI_AMP
 #define MSM_HIFI_ON 1
@@ -397,6 +397,118 @@ static struct dev_config aux_pcm_tx_cfg[] = {
 	[QUAT_AUX_PCM] = {SAMPLING_RATE_8KHZ, SNDRV_PCM_FORMAT_S16_LE, 1},
 };
 
+/* TDM default slot config */
+struct tdm_slot_cfg {
+	u32 width;
+	u32 num;
+};
+
+static struct tdm_slot_cfg tdm_slot[TDM_INTERFACE_MAX] = {
+	/* PRI TDM */
+	{32, 8},
+	/* SEC TDM */
+	{32, 8},
+	/* TERT TDM */
+	{32, 8},
+	/* QUAT TDM */
+	{32, 8}
+};
+
+static unsigned int tdm_rx_slot_offset
+	[TDM_INTERFACE_MAX][TDM_PORT_MAX][TDM_SLOT_OFFSET_MAX] = {
+	{/* PRI TDM */
+		{0, 4, 8, 12, 16, 20, 24, 28,
+			32, 36, 40, 44, 48, 52, 56, 60, 0xFFFF},
+		{0xFFFF}, /* not used */
+		{0xFFFF}, /* not used */
+		{0xFFFF}, /* not used */
+		{0xFFFF}, /* not used */
+		{0xFFFF}, /* not used */
+		{0xFFFF}, /* not used */
+		{0xFFFF}, /* not used */
+	},
+	{/* SEC TDM */
+		{0, 4, 8, 12, 16, 20, 24, 28,
+			32, 36, 40, 44, 48, 52, 56, 60, 0xFFFF},
+		{0xFFFF}, /* not used */
+		{0xFFFF}, /* not used */
+		{0xFFFF}, /* not used */
+		{0xFFFF}, /* not used */
+		{0xFFFF}, /* not used */
+		{0xFFFF}, /* not used */
+		{0xFFFF}, /* not used */
+	},
+	{/* TERT TDM */
+		{0, 4, 8, 12, 16, 20, 24, 28,
+			32, 36, 40, 44, 48, 52, 56, 60, 0xFFFF},
+		{0xFFFF}, /* not used */
+		{0xFFFF}, /* not used */
+		{0xFFFF}, /* not used */
+		{0xFFFF}, /* not used */
+		{0xFFFF}, /* not used */
+		{0xFFFF}, /* not used */
+		{0xFFFF}, /* not used */
+	},
+	{/* QUAT TDM */
+		{0, 4, 8, 12, 16, 20, 24, 28,
+			32, 36, 40, 44, 48, 52, 56, 60, 0xFFFF},
+		{0xFFFF}, /* not used */
+		{0xFFFF}, /* not used */
+		{0xFFFF}, /* not used */
+		{0xFFFF}, /* not used */
+		{0xFFFF}, /* not used */
+		{0xFFFF}, /* not used */
+	}
+};
+
+static unsigned int tdm_tx_slot_offset
+	[TDM_INTERFACE_MAX][TDM_PORT_MAX][TDM_SLOT_OFFSET_MAX] = {
+	{/* PRI TDM */
+		{0, 4, 8, 12, 16, 20, 24, 28,
+			32, 36, 40, 44, 48, 52, 56, 60, 0xFFFF},
+		{0xFFFF}, /* not used */
+		{0xFFFF}, /* not used */
+		{0xFFFF}, /* not used */
+		{0xFFFF}, /* not used */
+		{0xFFFF}, /* not used */
+		{0xFFFF}, /* not used */
+		{0xFFFF}, /* not used */
+	},
+	{/* SEC TDM */
+		{0, 4, 8, 12, 16, 20, 24, 28,
+			32, 36, 40, 44, 48, 52, 56, 60, 0xFFFF},
+		{0xFFFF}, /* not used */
+		{0xFFFF}, /* not used */
+		{0xFFFF}, /* not used */
+		{0xFFFF}, /* not used */
+		{0xFFFF}, /* not used */
+		{0xFFFF}, /* not used */
+		{0xFFFF}, /* not used */
+	},
+	{/* TERT TDM */
+		{0, 4, 8, 12, 16, 20, 24, 28,
+			32, 36, 40, 44, 48, 52, 56, 60, 0xFFFF},
+		{0xFFFF}, /* not used */
+		{0xFFFF}, /* not used */
+		{0xFFFF}, /* not used */
+		{0xFFFF}, /* not used */
+		{0xFFFF}, /* not used */
+		{0xFFFF}, /* not used */
+		{0xFFFF}, /* not used */
+	},
+	{/* QUAT TDM */
+		{0, 4, 8, 12, 16, 20, 24, 28,
+			32, 36, 40, 44, 48, 52, 56, 60, 0xFFFF},/*MIC ARR*/
+		{0xFFFF}, /* not used */
+		{0xFFFF}, /* not used */
+		{0xFFFF}, /* not used */
+		{0xFFFF}, /* not used */
+		{0xFFFF}, /* not used */
+		{0xFFFF}, /* not used */
+		{0xFFFF}, /* not used */
+	}
+};
+
 static int ext_hac_amp_en_gpio = -1;
 static int msm_vi_feed_tx_ch = 2;
 static const char *const slim_rx_ch_text[] = {"One", "Two", "Three", "Four",
@@ -430,11 +542,17 @@ static char const *ext_disp_sample_rate_text[] = {"KHZ_48", "KHZ_96",
 					"KHZ_192", "KHZ_32", "KHZ_44P1",
 					"KHZ_88P2", "KHZ_176P4"};
 static char const *tdm_ch_text[] = {"One", "Two", "Three", "Four",
-				    "Five", "Six", "Seven", "Eight"};
+					"Five", "Six", "Seven", "Eight",
+					"Nine", "Ten", "Eleven", "Twelve",
+					"Thirteen", "Fourteen", "Fifteen",
+					"Sixteen"};
 static char const *tdm_bit_format_text[] = {"S16_LE", "S24_LE", "S32_LE"};
 static char const *tdm_sample_rate_text[] = {"KHZ_8", "KHZ_16", "KHZ_32",
 					     "KHZ_44P1", "KHZ_48", "KHZ_96",
 					     "KHZ_192", "KHZ_352P8", "KHZ_384"};
+static const char *const tdm_slot_num_text[] = {"One", "Two", "Four",
+	"Eight", "Sixteen", "ThirtyTwo"};
+static const char *const tdm_slot_width_text[] = {"16", "24", "32"};
 static const char *const auxpcm_rate_text[] = {"KHZ_8", "KHZ_16"};
 static char const *mi2s_rate_text[] = {"KHZ_8", "KHZ_16",
 				      "KHZ_32", "KHZ_44P1", "KHZ_48",
@@ -483,6 +601,8 @@ static SOC_ENUM_SINGLE_EXT_DECL(tdm_tx_sample_rate, tdm_sample_rate_text);
 static SOC_ENUM_SINGLE_EXT_DECL(tdm_rx_chs, tdm_ch_text);
 static SOC_ENUM_SINGLE_EXT_DECL(tdm_rx_format, tdm_bit_format_text);
 static SOC_ENUM_SINGLE_EXT_DECL(tdm_rx_sample_rate, tdm_sample_rate_text);
+static SOC_ENUM_SINGLE_EXT_DECL(tdm_slot_num, tdm_slot_num_text);
+static SOC_ENUM_SINGLE_EXT_DECL(tdm_slot_width, tdm_slot_width_text);
 static SOC_ENUM_SINGLE_EXT_DECL(prim_aux_pcm_rx_sample_rate, auxpcm_rate_text);
 static SOC_ENUM_SINGLE_EXT_DECL(sec_aux_pcm_rx_sample_rate, auxpcm_rate_text);
 static SOC_ENUM_SINGLE_EXT_DECL(tert_aux_pcm_rx_sample_rate, auxpcm_rate_text);
@@ -1828,73 +1948,95 @@ static int aux_pcm_get_sample_rate_val(int sample_rate)
 	return sample_rate_val;
 }
 
+static int tdm_get_mode(struct snd_kcontrol *kcontrol)
+{
+	int mode;
+
+	if (strnstr(kcontrol->id.name, "PRI",
+	    sizeof(kcontrol->id.name))) {
+		mode = TDM_PRI;
+	} else if (strnstr(kcontrol->id.name, "SEC",
+	    sizeof(kcontrol->id.name))) {
+		mode = TDM_SEC;
+	} else if (strnstr(kcontrol->id.name, "TERT",
+	    sizeof(kcontrol->id.name))) {
+		mode = TDM_TERT;
+	} else if (strnstr(kcontrol->id.name, "QUAT",
+	    sizeof(kcontrol->id.name))) {
+		mode = TDM_QUAT;
+	} else {
+		pr_err("%s: unsupported mode in: %s",
+			__func__, kcontrol->id.name);
+		mode = -EINVAL;
+	}
+
+	return mode;
+}
+
+static int tdm_get_channel(struct snd_kcontrol *kcontrol)
+{
+	int channel;
+
+	if (strnstr(kcontrol->id.name, "RX_0",
+	    sizeof(kcontrol->id.name)) ||
+	    strnstr(kcontrol->id.name, "TX_0",
+	    sizeof(kcontrol->id.name))) {
+		channel = TDM_0;
+	} else if (strnstr(kcontrol->id.name, "RX_1",
+		   sizeof(kcontrol->id.name)) ||
+		   strnstr(kcontrol->id.name, "TX_1",
+		   sizeof(kcontrol->id.name))) {
+		channel = TDM_1;
+	} else if (strnstr(kcontrol->id.name, "RX_2",
+		   sizeof(kcontrol->id.name)) ||
+		   strnstr(kcontrol->id.name, "TX_2",
+		   sizeof(kcontrol->id.name))) {
+		channel = TDM_2;
+	} else if (strnstr(kcontrol->id.name, "RX_3",
+		   sizeof(kcontrol->id.name)) ||
+		   strnstr(kcontrol->id.name, "TX_3",
+		   sizeof(kcontrol->id.name))) {
+		channel = TDM_3;
+	} else if (strnstr(kcontrol->id.name, "RX_4",
+		   sizeof(kcontrol->id.name)) ||
+		   strnstr(kcontrol->id.name, "TX_4",
+		   sizeof(kcontrol->id.name))) {
+		channel = TDM_4;
+	} else if (strnstr(kcontrol->id.name, "RX_5",
+		   sizeof(kcontrol->id.name)) ||
+		   strnstr(kcontrol->id.name, "TX_5",
+		   sizeof(kcontrol->id.name))) {
+		channel = TDM_5;
+	} else if (strnstr(kcontrol->id.name, "RX_6",
+		   sizeof(kcontrol->id.name)) ||
+		   strnstr(kcontrol->id.name, "TX_6",
+		   sizeof(kcontrol->id.name))) {
+		channel = TDM_6;
+	} else if (strnstr(kcontrol->id.name, "RX_7",
+		   sizeof(kcontrol->id.name)) ||
+		   strnstr(kcontrol->id.name, "TX_7",
+		   sizeof(kcontrol->id.name))) {
+		channel = TDM_7;
+	} else {
+		pr_err("%s: unsupported channel in: %s",
+			__func__, kcontrol->id.name);
+		channel = -EINVAL;
+	}
+
+	return channel;
+}
+
 static int tdm_get_port_idx(struct snd_kcontrol *kcontrol,
 			    struct tdm_port *port)
 {
 	if (port) {
-		if (strnstr(kcontrol->id.name, "PRI",
-		    sizeof(kcontrol->id.name))) {
-			port->mode = TDM_PRI;
-		} else if (strnstr(kcontrol->id.name, "SEC",
-		    sizeof(kcontrol->id.name))) {
-			port->mode = TDM_SEC;
-		} else if (strnstr(kcontrol->id.name, "TERT",
-		    sizeof(kcontrol->id.name))) {
-			port->mode = TDM_TERT;
-		} else if (strnstr(kcontrol->id.name, "QUAT",
-		    sizeof(kcontrol->id.name))) {
-			port->mode = TDM_QUAT;
-		} else {
-			pr_err("%s: unsupported mode in: %s",
-				__func__, kcontrol->id.name);
-			return -EINVAL;
-		}
+		port->mode = tdm_get_mode(kcontrol);
+		if (port->mode < 0)
+			return port->mode;
 
-		if (strnstr(kcontrol->id.name, "RX_0",
-		    sizeof(kcontrol->id.name)) ||
-		    strnstr(kcontrol->id.name, "TX_0",
-		    sizeof(kcontrol->id.name))) {
-			port->channel = TDM_0;
-		} else if (strnstr(kcontrol->id.name, "RX_1",
-			   sizeof(kcontrol->id.name)) ||
-			   strnstr(kcontrol->id.name, "TX_1",
-			   sizeof(kcontrol->id.name))) {
-			port->channel = TDM_1;
-		} else if (strnstr(kcontrol->id.name, "RX_2",
-			   sizeof(kcontrol->id.name)) ||
-			   strnstr(kcontrol->id.name, "TX_2",
-			   sizeof(kcontrol->id.name))) {
-			port->channel = TDM_2;
-		} else if (strnstr(kcontrol->id.name, "RX_3",
-			   sizeof(kcontrol->id.name)) ||
-			   strnstr(kcontrol->id.name, "TX_3",
-			   sizeof(kcontrol->id.name))) {
-			port->channel = TDM_3;
-		} else if (strnstr(kcontrol->id.name, "RX_4",
-			   sizeof(kcontrol->id.name)) ||
-			   strnstr(kcontrol->id.name, "TX_4",
-			   sizeof(kcontrol->id.name))) {
-			port->channel = TDM_4;
-		} else if (strnstr(kcontrol->id.name, "RX_5",
-			   sizeof(kcontrol->id.name)) ||
-			   strnstr(kcontrol->id.name, "TX_5",
-			   sizeof(kcontrol->id.name))) {
-			port->channel = TDM_5;
-		} else if (strnstr(kcontrol->id.name, "RX_6",
-			   sizeof(kcontrol->id.name)) ||
-			   strnstr(kcontrol->id.name, "TX_6",
-			   sizeof(kcontrol->id.name))) {
-			port->channel = TDM_6;
-		} else if (strnstr(kcontrol->id.name, "RX_7",
-			   sizeof(kcontrol->id.name)) ||
-			   strnstr(kcontrol->id.name, "TX_7",
-			   sizeof(kcontrol->id.name))) {
-			port->channel = TDM_7;
-		} else {
-			pr_err("%s: unsupported channel in: %s",
-				__func__, kcontrol->id.name);
-			return -EINVAL;
-		}
+		port->channel = tdm_get_channel(kcontrol);
+		if (port->channel < 0)
+			return port->channel;
 	} else
 		return -EINVAL;
 	return 0;
@@ -2179,6 +2321,316 @@ static int tdm_tx_ch_put(struct snd_kcontrol *kcontrol,
 		pr_debug("%s: tdm_tx_ch = %d, item = %d\n", __func__,
 			 tdm_tx_cfg[port.mode][port.channel].channels,
 			 ucontrol->value.enumerated.item[0] + 1);
+	}
+	return ret;
+}
+
+static int tdm_get_slot_num_val(int slot_num)
+{
+	int slot_num_val;
+
+	switch (slot_num) {
+	case 1:
+		slot_num_val = 0;
+		break;
+	case 2:
+		slot_num_val = 1;
+		break;
+	case 4:
+		slot_num_val = 2;
+		break;
+	case 8:
+		slot_num_val = 3;
+		break;
+	case 16:
+		slot_num_val = 4;
+		break;
+	case 32:
+		slot_num_val = 5;
+		break;
+	default:
+		slot_num_val = 5;
+		break;
+	}
+	return slot_num_val;
+}
+
+static int tdm_slot_num_get(struct snd_kcontrol *kcontrol,
+				    struct snd_ctl_elem_value *ucontrol)
+{
+	int mode = tdm_get_mode(kcontrol);
+
+	if (mode < 0) {
+		pr_err("%s: unsupported control: %s",
+			__func__, kcontrol->id.name);
+		return mode;
+	}
+
+	ucontrol->value.enumerated.item[0] =
+		tdm_get_slot_num_val(tdm_slot[mode].num);
+
+	pr_debug("%s: mode = %d, tdm_slot_num = %d, item = %d\n", __func__,
+		mode, tdm_slot[mode].num,
+		ucontrol->value.enumerated.item[0]);
+
+	return 0;
+}
+
+static int tdm_get_slot_num(int value)
+{
+	int slot_num;
+
+	switch (value) {
+	case 0:
+		slot_num = 1;
+		break;
+	case 1:
+		slot_num = 2;
+		break;
+	case 2:
+		slot_num = 4;
+		break;
+	case 3:
+		slot_num = 8;
+		break;
+	case 4:
+		slot_num = 16;
+		break;
+	case 5:
+		slot_num = 32;
+		break;
+	default:
+		slot_num = 8;
+		break;
+	}
+	return slot_num;
+}
+
+static int tdm_slot_num_put(struct snd_kcontrol *kcontrol,
+				    struct snd_ctl_elem_value *ucontrol)
+{
+	int mode = tdm_get_mode(kcontrol);
+
+	if (mode < 0) {
+		pr_err("%s: unsupported control: %s",
+			__func__, kcontrol->id.name);
+		return mode;
+	}
+
+	tdm_slot[mode].num =
+		tdm_get_slot_num(ucontrol->value.enumerated.item[0]);
+
+	pr_debug("%s: mode = %d, tdm_slot_num = %d, item = %d\n", __func__,
+		mode, tdm_slot[mode].num,
+		ucontrol->value.enumerated.item[0]);
+
+	return 0;
+}
+
+static int tdm_get_slot_width_val(int slot_width)
+{
+	int slot_width_val;
+
+	switch (slot_width) {
+	case 16:
+		slot_width_val = 0;
+		break;
+	case 24:
+		slot_width_val = 1;
+		break;
+	case 32:
+		slot_width_val = 2;
+		break;
+	default:
+		slot_width_val = 2;
+		break;
+	}
+	return slot_width_val;
+}
+
+static int tdm_slot_width_get(struct snd_kcontrol *kcontrol,
+				    struct snd_ctl_elem_value *ucontrol)
+{
+	int mode = tdm_get_mode(kcontrol);
+
+	if (mode < 0) {
+		pr_err("%s: unsupported control: %s",
+			__func__, kcontrol->id.name);
+		return mode;
+	}
+
+	ucontrol->value.enumerated.item[0] =
+		tdm_get_slot_width_val(tdm_slot[mode].width);
+
+	pr_debug("%s: mode = %d, tdm_slot_width = %d, item = %d\n", __func__,
+		mode, tdm_slot[mode].width,
+		ucontrol->value.enumerated.item[0]);
+
+	return 0;
+}
+
+static int tdm_get_slot_width(int value)
+{
+	int slot_width;
+
+	switch (value) {
+	case 0:
+		slot_width = 16;
+		break;
+	case 1:
+		slot_width = 24;
+		break;
+	case 2:
+		slot_width = 32;
+		break;
+	default:
+		slot_width = 32;
+		break;
+	}
+	return slot_width;
+}
+
+static int tdm_slot_width_put(struct snd_kcontrol *kcontrol,
+				    struct snd_ctl_elem_value *ucontrol)
+{
+	int mode = tdm_get_mode(kcontrol);
+
+	if (mode < 0) {
+		pr_err("%s: unsupported control: %s",
+			__func__, kcontrol->id.name);
+		return mode;
+	}
+
+	tdm_slot[mode].width =
+		tdm_get_slot_width(ucontrol->value.enumerated.item[0]);
+
+	pr_debug("%s: mode = %d, tdm_slot_width = %d, item = %d\n", __func__,
+		mode, tdm_slot[mode].width,
+		ucontrol->value.enumerated.item[0]);
+
+	return 0;
+}
+
+static int tdm_rx_slot_mapping_get(struct snd_kcontrol *kcontrol,
+				    struct snd_ctl_elem_value *ucontrol)
+{
+	unsigned int *slot_offset;
+	int i;
+	struct tdm_port port;
+	int ret = tdm_get_port_idx(kcontrol, &port);
+
+	if (ret) {
+		pr_err("%s: unsupported control: %s",
+			__func__, kcontrol->id.name);
+	} else {
+		if (port.mode < TDM_INTERFACE_MAX &&
+			port.channel < TDM_PORT_MAX) {
+			slot_offset =
+				tdm_rx_slot_offset[port.mode][port.channel];
+			pr_debug("%s: mode = %d, channel = %d\n",
+					__func__, port.mode, port.channel);
+			for (i = 0; i < TDM_SLOT_OFFSET_MAX; i++) {
+				ucontrol->value.integer.value[i] =
+					slot_offset[i];
+				pr_debug("%s: offset %d, value %d\n",
+						__func__, i, slot_offset[i]);
+			}
+		} else {
+			pr_err("%s: unsupported mode/channel", __func__);
+		}
+	}
+	return ret;
+}
+
+static int tdm_rx_slot_mapping_put(struct snd_kcontrol *kcontrol,
+				    struct snd_ctl_elem_value *ucontrol)
+{
+	unsigned int *slot_offset;
+	int i;
+	struct tdm_port port;
+	int ret = tdm_get_port_idx(kcontrol, &port);
+
+	if (ret) {
+		pr_err("%s: unsupported control: %s",
+			__func__, kcontrol->id.name);
+	} else {
+		if (port.mode < TDM_INTERFACE_MAX &&
+			port.channel < TDM_PORT_MAX) {
+			slot_offset =
+				tdm_rx_slot_offset[port.mode][port.channel];
+			pr_debug("%s: mode = %d, channel = %d\n",
+					__func__, port.mode, port.channel);
+			for (i = 0; i < TDM_SLOT_OFFSET_MAX; i++) {
+				slot_offset[i] =
+					ucontrol->value.integer.value[i];
+				pr_debug("%s: offset %d, value %d\n",
+						__func__, i, slot_offset[i]);
+			}
+		} else {
+			pr_err("%s: unsupported mode/channel", __func__);
+		}
+	}
+	return ret;
+}
+
+static int tdm_tx_slot_mapping_get(struct snd_kcontrol *kcontrol,
+				    struct snd_ctl_elem_value *ucontrol)
+{
+	unsigned int *slot_offset;
+	int i;
+	struct tdm_port port;
+	int ret = tdm_get_port_idx(kcontrol, &port);
+
+	if (ret) {
+		pr_err("%s: unsupported control: %s",
+			__func__, kcontrol->id.name);
+	} else {
+		if (port.mode < TDM_INTERFACE_MAX &&
+			port.channel < TDM_PORT_MAX) {
+			slot_offset =
+				tdm_tx_slot_offset[port.mode][port.channel];
+			pr_debug("%s: mode = %d, channel = %d\n",
+					__func__, port.mode, port.channel);
+			for (i = 0; i < TDM_SLOT_OFFSET_MAX; i++) {
+				ucontrol->value.integer.value[i] =
+					slot_offset[i];
+				pr_debug("%s: offset %d, value %d\n",
+						__func__, i, slot_offset[i]);
+			}
+		} else {
+			pr_err("%s: unsupported mode/channel", __func__);
+		}
+	}
+	return ret;
+}
+
+static int tdm_tx_slot_mapping_put(struct snd_kcontrol *kcontrol,
+				    struct snd_ctl_elem_value *ucontrol)
+{
+	unsigned int *slot_offset;
+	int i;
+	struct tdm_port port;
+	int ret = tdm_get_port_idx(kcontrol, &port);
+
+	if (ret) {
+		pr_err("%s: unsupported control: %s",
+			__func__, kcontrol->id.name);
+	} else {
+		if (port.mode < TDM_INTERFACE_MAX &&
+			port.channel < TDM_PORT_MAX) {
+			slot_offset =
+				tdm_tx_slot_offset[port.mode][port.channel];
+			pr_debug("%s: mode = %d, channel = %d\n",
+					__func__, port.mode, port.channel);
+			for (i = 0; i < TDM_SLOT_OFFSET_MAX; i++) {
+				slot_offset[i] =
+					ucontrol->value.integer.value[i];
+				pr_debug("%s: offset %d, value %d\n",
+						__func__, i, slot_offset[i]);
+			}
+		} else {
+			pr_err("%s: unsupported mode/channel", __func__);
+		}
 	}
 	return ret;
 }
@@ -2843,6 +3295,214 @@ static const struct snd_kcontrol_new msm_snd_controls[] = {
 	SOC_ENUM_EXT("QUAT_TDM_TX_0 Channels", tdm_tx_chs,
 			tdm_tx_ch_get,
 			tdm_tx_ch_put),
+	SOC_ENUM_EXT("PRI_TDM SlotNumber", tdm_slot_num,
+			tdm_slot_num_get, tdm_slot_num_put),
+	SOC_ENUM_EXT("PRI_TDM SlotWidth", tdm_slot_width,
+			tdm_slot_width_get, tdm_slot_width_put),
+	SOC_ENUM_EXT("SEC_TDM SlotNumber", tdm_slot_num,
+			tdm_slot_num_get, tdm_slot_num_put),
+	SOC_ENUM_EXT("SEC_TDM SlotWidth", tdm_slot_width,
+			tdm_slot_width_get, tdm_slot_width_put),
+	SOC_ENUM_EXT("TERT_TDM SlotNumber", tdm_slot_num,
+			tdm_slot_num_get, tdm_slot_num_put),
+	SOC_ENUM_EXT("TERT_TDM SlotWidth", tdm_slot_width,
+			tdm_slot_width_get, tdm_slot_width_put),
+	SOC_ENUM_EXT("QUAT_TDM SlotNumber", tdm_slot_num,
+			tdm_slot_num_get, tdm_slot_num_put),
+	SOC_ENUM_EXT("QUAT_TDM SlotWidth", tdm_slot_width,
+			tdm_slot_width_get, tdm_slot_width_put),
+	SOC_SINGLE_MULTI_EXT("PRI_TDM_RX_0 SlotMapping",
+		SND_SOC_NOPM, 0, 0xFFFF, 0, TDM_SLOT_OFFSET_MAX,
+		tdm_rx_slot_mapping_get, tdm_rx_slot_mapping_put),
+	SOC_SINGLE_MULTI_EXT("PRI_TDM_RX_1 SlotMapping",
+		SND_SOC_NOPM, 0, 0xFFFF, 0, TDM_SLOT_OFFSET_MAX,
+		tdm_rx_slot_mapping_get, tdm_rx_slot_mapping_put),
+	SOC_SINGLE_MULTI_EXT("PRI_TDM_RX_2 SlotMapping",
+		SND_SOC_NOPM, 0, 0xFFFF, 0, TDM_SLOT_OFFSET_MAX,
+		tdm_rx_slot_mapping_get, tdm_rx_slot_mapping_put),
+	SOC_SINGLE_MULTI_EXT("PRI_TDM_RX_3 SlotMapping",
+		SND_SOC_NOPM, 0, 0xFFFF, 0, TDM_SLOT_OFFSET_MAX,
+		tdm_rx_slot_mapping_get, tdm_rx_slot_mapping_put),
+	SOC_SINGLE_MULTI_EXT("PRI_TDM_RX_4 SlotMapping",
+		SND_SOC_NOPM, 0, 0xFFFF, 0, TDM_SLOT_OFFSET_MAX,
+		tdm_rx_slot_mapping_get, tdm_rx_slot_mapping_put),
+	SOC_SINGLE_MULTI_EXT("PRI_TDM_RX_5 SlotMapping",
+		SND_SOC_NOPM, 0, 0xFFFF, 0, TDM_SLOT_OFFSET_MAX,
+		tdm_rx_slot_mapping_get, tdm_rx_slot_mapping_put),
+	SOC_SINGLE_MULTI_EXT("PRI_TDM_RX_6 SlotMapping",
+		SND_SOC_NOPM, 0, 0xFFFF, 0, TDM_SLOT_OFFSET_MAX,
+		tdm_rx_slot_mapping_get, tdm_rx_slot_mapping_put),
+	SOC_SINGLE_MULTI_EXT("PRI_TDM_RX_7 SlotMapping",
+		SND_SOC_NOPM, 0, 0xFFFF, 0, TDM_SLOT_OFFSET_MAX,
+		tdm_rx_slot_mapping_get, tdm_rx_slot_mapping_put),
+	SOC_SINGLE_MULTI_EXT("PRI_TDM_TX_0 SlotMapping",
+		SND_SOC_NOPM, 0, 0xFFFF, 0, TDM_SLOT_OFFSET_MAX,
+		tdm_tx_slot_mapping_get, tdm_tx_slot_mapping_put),
+	SOC_SINGLE_MULTI_EXT("PRI_TDM_TX_1 SlotMapping",
+		SND_SOC_NOPM, 0, 0xFFFF, 0, TDM_SLOT_OFFSET_MAX,
+		tdm_tx_slot_mapping_get, tdm_tx_slot_mapping_put),
+	SOC_SINGLE_MULTI_EXT("PRI_TDM_TX_2 SlotMapping",
+		SND_SOC_NOPM, 0, 0xFFFF, 0, TDM_SLOT_OFFSET_MAX,
+		tdm_tx_slot_mapping_get, tdm_tx_slot_mapping_put),
+	SOC_SINGLE_MULTI_EXT("PRI_TDM_TX_3 SlotMapping",
+		SND_SOC_NOPM, 0, 0xFFFF, 0, TDM_SLOT_OFFSET_MAX,
+		tdm_tx_slot_mapping_get, tdm_tx_slot_mapping_put),
+	SOC_SINGLE_MULTI_EXT("PRI_TDM_TX_4 SlotMapping",
+		SND_SOC_NOPM, 0, 0xFFFF, 0, TDM_SLOT_OFFSET_MAX,
+		tdm_tx_slot_mapping_get, tdm_tx_slot_mapping_put),
+	SOC_SINGLE_MULTI_EXT("PRI_TDM_TX_5 SlotMapping",
+		SND_SOC_NOPM, 0, 0xFFFF, 0, TDM_SLOT_OFFSET_MAX,
+		tdm_tx_slot_mapping_get, tdm_tx_slot_mapping_put),
+	SOC_SINGLE_MULTI_EXT("PRI_TDM_TX_6 SlotMapping",
+		SND_SOC_NOPM, 0, 0xFFFF, 0, TDM_SLOT_OFFSET_MAX,
+		tdm_tx_slot_mapping_get, tdm_tx_slot_mapping_put),
+	SOC_SINGLE_MULTI_EXT("PRI_TDM_TX_7 SlotMapping",
+		SND_SOC_NOPM, 0, 0xFFFF, 0, TDM_SLOT_OFFSET_MAX,
+		tdm_tx_slot_mapping_get, tdm_tx_slot_mapping_put),
+	SOC_SINGLE_MULTI_EXT("SEC_TDM_RX_0 SlotMapping",
+		SND_SOC_NOPM, 0, 0xFFFF, 0, TDM_SLOT_OFFSET_MAX,
+		tdm_rx_slot_mapping_get, tdm_rx_slot_mapping_put),
+	SOC_SINGLE_MULTI_EXT("SEC_TDM_RX_1 SlotMapping",
+		SND_SOC_NOPM, 0, 0xFFFF, 0, TDM_SLOT_OFFSET_MAX,
+		tdm_rx_slot_mapping_get, tdm_rx_slot_mapping_put),
+	SOC_SINGLE_MULTI_EXT("SEC_TDM_RX_2 SlotMapping",
+		SND_SOC_NOPM, 0, 0xFFFF, 0, TDM_SLOT_OFFSET_MAX,
+		tdm_rx_slot_mapping_get, tdm_rx_slot_mapping_put),
+	SOC_SINGLE_MULTI_EXT("SEC_TDM_RX_3 SlotMapping",
+		SND_SOC_NOPM, 0, 0xFFFF, 0, TDM_SLOT_OFFSET_MAX,
+		tdm_rx_slot_mapping_get, tdm_rx_slot_mapping_put),
+	SOC_SINGLE_MULTI_EXT("SEC_TDM_RX_4 SlotMapping",
+		SND_SOC_NOPM, 0, 0xFFFF, 0, TDM_SLOT_OFFSET_MAX,
+		tdm_rx_slot_mapping_get, tdm_rx_slot_mapping_put),
+	SOC_SINGLE_MULTI_EXT("SEC_TDM_RX_5 SlotMapping",
+		SND_SOC_NOPM, 0, 0xFFFF, 0, TDM_SLOT_OFFSET_MAX,
+		tdm_rx_slot_mapping_get, tdm_rx_slot_mapping_put),
+	SOC_SINGLE_MULTI_EXT("SEC_TDM_RX_6 SlotMapping",
+		SND_SOC_NOPM, 0, 0xFFFF, 0, TDM_SLOT_OFFSET_MAX,
+		tdm_rx_slot_mapping_get, tdm_rx_slot_mapping_put),
+	SOC_SINGLE_MULTI_EXT("SEC_TDM_RX_7 SlotMapping",
+		SND_SOC_NOPM, 0, 0xFFFF, 0, TDM_SLOT_OFFSET_MAX,
+		tdm_rx_slot_mapping_get, tdm_rx_slot_mapping_put),
+	SOC_SINGLE_MULTI_EXT("SEC_TDM_TX_0 SlotMapping",
+		SND_SOC_NOPM, 0, 0xFFFF, 0, TDM_SLOT_OFFSET_MAX,
+		tdm_tx_slot_mapping_get, tdm_tx_slot_mapping_put),
+	SOC_SINGLE_MULTI_EXT("SEC_TDM_TX_1 SlotMapping",
+		SND_SOC_NOPM, 0, 0xFFFF, 0, TDM_SLOT_OFFSET_MAX,
+		tdm_tx_slot_mapping_get, tdm_tx_slot_mapping_put),
+	SOC_SINGLE_MULTI_EXT("SEC_TDM_TX_2 SlotMapping",
+		SND_SOC_NOPM, 0, 0xFFFF, 0, TDM_SLOT_OFFSET_MAX,
+		tdm_tx_slot_mapping_get, tdm_tx_slot_mapping_put),
+	SOC_SINGLE_MULTI_EXT("SEC_TDM_TX_3 SlotMapping",
+		SND_SOC_NOPM, 0, 0xFFFF, 0, TDM_SLOT_OFFSET_MAX,
+		tdm_tx_slot_mapping_get, tdm_tx_slot_mapping_put),
+	SOC_SINGLE_MULTI_EXT("SEC_TDM_TX_4 SlotMapping",
+		SND_SOC_NOPM, 0, 0xFFFF, 0, TDM_SLOT_OFFSET_MAX,
+		tdm_tx_slot_mapping_get, tdm_tx_slot_mapping_put),
+	SOC_SINGLE_MULTI_EXT("SEC_TDM_TX_5 SlotMapping",
+		SND_SOC_NOPM, 0, 0xFFFF, 0, TDM_SLOT_OFFSET_MAX,
+		tdm_tx_slot_mapping_get, tdm_tx_slot_mapping_put),
+	SOC_SINGLE_MULTI_EXT("SEC_TDM_TX_6 SlotMapping",
+		SND_SOC_NOPM, 0, 0xFFFF, 0, TDM_SLOT_OFFSET_MAX,
+		tdm_tx_slot_mapping_get, tdm_tx_slot_mapping_put),
+	SOC_SINGLE_MULTI_EXT("SEC_TDM_TX_7 SlotMapping",
+		SND_SOC_NOPM, 0, 0xFFFF, 0, TDM_SLOT_OFFSET_MAX,
+		tdm_tx_slot_mapping_get, tdm_tx_slot_mapping_put),
+	SOC_SINGLE_MULTI_EXT("TERT_TDM_RX_0 SlotMapping",
+		SND_SOC_NOPM, 0, 0xFFFF, 0, TDM_SLOT_OFFSET_MAX,
+		tdm_rx_slot_mapping_get, tdm_rx_slot_mapping_put),
+	SOC_SINGLE_MULTI_EXT("TERT_TDM_RX_1 SlotMapping",
+		SND_SOC_NOPM, 0, 0xFFFF, 0, TDM_SLOT_OFFSET_MAX,
+		tdm_rx_slot_mapping_get, tdm_rx_slot_mapping_put),
+	SOC_SINGLE_MULTI_EXT("TERT_TDM_RX_2 SlotMapping",
+		SND_SOC_NOPM, 0, 0xFFFF, 0, TDM_SLOT_OFFSET_MAX,
+		tdm_rx_slot_mapping_get, tdm_rx_slot_mapping_put),
+	SOC_SINGLE_MULTI_EXT("TERT_TDM_RX_3 SlotMapping",
+		SND_SOC_NOPM, 0, 0xFFFF, 0, TDM_SLOT_OFFSET_MAX,
+		tdm_rx_slot_mapping_get, tdm_rx_slot_mapping_put),
+	SOC_SINGLE_MULTI_EXT("TERT_TDM_RX_4 SlotMapping",
+		SND_SOC_NOPM, 0, 0xFFFF, 0, TDM_SLOT_OFFSET_MAX,
+		tdm_rx_slot_mapping_get, tdm_rx_slot_mapping_put),
+	SOC_SINGLE_MULTI_EXT("TERT_TDM_RX_5 SlotMapping",
+		SND_SOC_NOPM, 0, 0xFFFF, 0, TDM_SLOT_OFFSET_MAX,
+		tdm_rx_slot_mapping_get, tdm_rx_slot_mapping_put),
+	SOC_SINGLE_MULTI_EXT("TERT_TDM_RX_6 SlotMapping",
+		SND_SOC_NOPM, 0, 0xFFFF, 0, TDM_SLOT_OFFSET_MAX,
+		tdm_rx_slot_mapping_get, tdm_rx_slot_mapping_put),
+	SOC_SINGLE_MULTI_EXT("TERT_TDM_RX_7 SlotMapping",
+		SND_SOC_NOPM, 0, 0xFFFF, 0, TDM_SLOT_OFFSET_MAX,
+		tdm_rx_slot_mapping_get, tdm_rx_slot_mapping_put),
+	SOC_SINGLE_MULTI_EXT("TERT_TDM_TX_0 SlotMapping",
+		SND_SOC_NOPM, 0, 0xFFFF, 0, TDM_SLOT_OFFSET_MAX,
+		tdm_tx_slot_mapping_get, tdm_tx_slot_mapping_put),
+	SOC_SINGLE_MULTI_EXT("TERT_TDM_TX_1 SlotMapping",
+		SND_SOC_NOPM, 0, 0xFFFF, 0, TDM_SLOT_OFFSET_MAX,
+		tdm_tx_slot_mapping_get, tdm_tx_slot_mapping_put),
+	SOC_SINGLE_MULTI_EXT("TERT_TDM_TX_2 SlotMapping",
+		SND_SOC_NOPM, 0, 0xFFFF, 0, TDM_SLOT_OFFSET_MAX,
+		tdm_tx_slot_mapping_get, tdm_tx_slot_mapping_put),
+	SOC_SINGLE_MULTI_EXT("TERT_TDM_TX_3 SlotMapping",
+		SND_SOC_NOPM, 0, 0xFFFF, 0, TDM_SLOT_OFFSET_MAX,
+		tdm_tx_slot_mapping_get, tdm_tx_slot_mapping_put),
+	SOC_SINGLE_MULTI_EXT("TERT_TDM_TX_4 SlotMapping",
+		SND_SOC_NOPM, 0, 0xFFFF, 0, TDM_SLOT_OFFSET_MAX,
+		tdm_tx_slot_mapping_get, tdm_tx_slot_mapping_put),
+	SOC_SINGLE_MULTI_EXT("TERT_TDM_TX_5 SlotMapping",
+		SND_SOC_NOPM, 0, 0xFFFF, 0, TDM_SLOT_OFFSET_MAX,
+		tdm_tx_slot_mapping_get, tdm_tx_slot_mapping_put),
+	SOC_SINGLE_MULTI_EXT("TERT_TDM_TX_6 SlotMapping",
+		SND_SOC_NOPM, 0, 0xFFFF, 0, TDM_SLOT_OFFSET_MAX,
+		tdm_tx_slot_mapping_get, tdm_tx_slot_mapping_put),
+	SOC_SINGLE_MULTI_EXT("TERT_TDM_TX_7 SlotMapping",
+		SND_SOC_NOPM, 0, 0xFFFF, 0, TDM_SLOT_OFFSET_MAX,
+		tdm_tx_slot_mapping_get, tdm_tx_slot_mapping_put),
+	SOC_SINGLE_MULTI_EXT("QUAT_TDM_RX_0 SlotMapping",
+		SND_SOC_NOPM, 0, 0xFFFF, 0, TDM_SLOT_OFFSET_MAX,
+		tdm_rx_slot_mapping_get, tdm_rx_slot_mapping_put),
+	SOC_SINGLE_MULTI_EXT("QUAT_TDM_RX_1 SlotMapping",
+		SND_SOC_NOPM, 0, 0xFFFF, 0, TDM_SLOT_OFFSET_MAX,
+		tdm_rx_slot_mapping_get, tdm_rx_slot_mapping_put),
+	SOC_SINGLE_MULTI_EXT("QUAT_TDM_RX_2 SlotMapping",
+		SND_SOC_NOPM, 0, 0xFFFF, 0, TDM_SLOT_OFFSET_MAX,
+		tdm_rx_slot_mapping_get, tdm_rx_slot_mapping_put),
+	SOC_SINGLE_MULTI_EXT("QUAT_TDM_RX_3 SlotMapping",
+		SND_SOC_NOPM, 0, 0xFFFF, 0, TDM_SLOT_OFFSET_MAX,
+		tdm_rx_slot_mapping_get, tdm_rx_slot_mapping_put),
+	SOC_SINGLE_MULTI_EXT("QUAT_TDM_RX_4 SlotMapping",
+		SND_SOC_NOPM, 0, 0xFFFF, 0, TDM_SLOT_OFFSET_MAX,
+		tdm_rx_slot_mapping_get, tdm_rx_slot_mapping_put),
+	SOC_SINGLE_MULTI_EXT("QUAT_TDM_RX_5 SlotMapping",
+		SND_SOC_NOPM, 0, 0xFFFF, 0, TDM_SLOT_OFFSET_MAX,
+		tdm_rx_slot_mapping_get, tdm_rx_slot_mapping_put),
+	SOC_SINGLE_MULTI_EXT("QUAT_TDM_RX_6 SlotMapping",
+		SND_SOC_NOPM, 0, 0xFFFF, 0, TDM_SLOT_OFFSET_MAX,
+		tdm_rx_slot_mapping_get, tdm_rx_slot_mapping_put),
+	SOC_SINGLE_MULTI_EXT("QUAT_TDM_RX_7 SlotMapping",
+		SND_SOC_NOPM, 0, 0xFFFF, 0, TDM_SLOT_OFFSET_MAX,
+		tdm_rx_slot_mapping_get, tdm_rx_slot_mapping_put),
+	SOC_SINGLE_MULTI_EXT("QUAT_TDM_TX_0 SlotMapping",
+		SND_SOC_NOPM, 0, 0xFFFF, 0, TDM_SLOT_OFFSET_MAX,
+		tdm_tx_slot_mapping_get, tdm_tx_slot_mapping_put),
+	SOC_SINGLE_MULTI_EXT("QUAT_TDM_TX_1 SlotMapping",
+		SND_SOC_NOPM, 0, 0xFFFF, 0, TDM_SLOT_OFFSET_MAX,
+		tdm_tx_slot_mapping_get, tdm_tx_slot_mapping_put),
+	SOC_SINGLE_MULTI_EXT("QUAT_TDM_TX_2 SlotMapping",
+		SND_SOC_NOPM, 0, 0xFFFF, 0, TDM_SLOT_OFFSET_MAX,
+		tdm_tx_slot_mapping_get, tdm_tx_slot_mapping_put),
+	SOC_SINGLE_MULTI_EXT("QUAT_TDM_TX_3 SlotMapping",
+		SND_SOC_NOPM, 0, 0xFFFF, 0, TDM_SLOT_OFFSET_MAX,
+		tdm_tx_slot_mapping_get, tdm_tx_slot_mapping_put),
+	SOC_SINGLE_MULTI_EXT("QUAT_TDM_TX_4 SlotMapping",
+		SND_SOC_NOPM, 0, 0xFFFF, 0, TDM_SLOT_OFFSET_MAX,
+		tdm_tx_slot_mapping_get, tdm_tx_slot_mapping_put),
+	SOC_SINGLE_MULTI_EXT("QUAT_TDM_TX_5 SlotMapping",
+		SND_SOC_NOPM, 0, 0xFFFF, 0, TDM_SLOT_OFFSET_MAX,
+		tdm_tx_slot_mapping_get, tdm_tx_slot_mapping_put),
+	SOC_SINGLE_MULTI_EXT("QUAT_TDM_TX_6 SlotMapping",
+		SND_SOC_NOPM, 0, 0xFFFF, 0, TDM_SLOT_OFFSET_MAX,
+		tdm_tx_slot_mapping_get, tdm_tx_slot_mapping_put),
+	SOC_SINGLE_MULTI_EXT("QUAT_TDM_TX_7 SlotMapping",
+		SND_SOC_NOPM, 0, 0xFFFF, 0, TDM_SLOT_OFFSET_MAX,
+		tdm_tx_slot_mapping_get, tdm_tx_slot_mapping_put),
 	SOC_ENUM_EXT("PRIM_AUX_PCM_RX SampleRate", prim_aux_pcm_rx_sample_rate,
 			aux_pcm_rx_sample_rate_get,
 			aux_pcm_rx_sample_rate_put),
@@ -4087,6 +4747,22 @@ err_ch_map:
 	return ret;
 }
 
+static unsigned int tdm_param_set_slot_mask(int slots)
+{
+	unsigned int slot_mask = 0;
+	int i = 0;
+
+	if ((slots <= 0) || (slots > 32)) {
+		pr_err("%s: invalid slot number %d\n", __func__, slots);
+		return -EINVAL;
+	}
+
+	for (i = 0; i < slots ; i++)
+		slot_mask |= 1 << i;
+
+	return slot_mask;
+}
+
 static int msm_snd_cpe_hw_params(struct snd_pcm_substream *substream,
 				 struct snd_pcm_hw_params *params)
 {
@@ -4508,28 +5184,6 @@ static struct snd_soc_ops msm_aux_pcm_be_ops = {
 	.shutdown = msm_aux_pcm_snd_shutdown,
 };
 
-static unsigned int tdm_param_set_slot_mask(u16 port_id, int slot_width,
-					    int slots)
-{
-	unsigned int slot_mask = 0;
-	int i, j;
-	unsigned int *slot_offset;
-
-	for (i = TDM_0; i < TDM_PORT_MAX; i++) {
-		slot_offset = tdm_slot_offset[i];
-
-		for (j = 0; j < TDM_SLOT_OFFSET_MAX; j++) {
-			if (slot_offset[j] != AFE_SLOT_MAPPING_OFFSET_INVALID)
-				slot_mask |=
-				(1 << ((slot_offset[j] * 8) / slot_width));
-			else
-				break;
-		}
-	}
-
-	return slot_mask;
-}
-
 static int msm_tdm_snd_hw_params(struct snd_pcm_substream *substream,
 				     struct snd_pcm_hw_params *params)
 {
@@ -4571,9 +5225,7 @@ static int msm_tdm_snd_hw_params(struct snd_pcm_substream *substream,
 			return -EINVAL;
 		}
 		slots = 8;
-		slot_mask = tdm_param_set_slot_mask(cpu_dai->id,
-						    slot_width,
-						    slots);
+		slot_mask = tdm_param_set_slot_mask(slots);
 		if (!slot_mask) {
 			pr_err("%s: invalid slot_mask 0x%x\n",
 				__func__, slot_mask);
@@ -7554,3 +8206,4 @@ MODULE_DESCRIPTION("ALSA SoC msm");
 MODULE_LICENSE("GPL v2");
 MODULE_ALIAS("platform:" DRV_NAME);
 MODULE_DEVICE_TABLE(of, msm8998_asoc_machine_of_match);
+
