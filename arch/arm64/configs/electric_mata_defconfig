@@ -1,6 +1,6 @@
 #
 # Automatically generated file; DO NOT EDIT.
-# Linux/arm64 4.4.194 Kernel Configuration
+# Linux/arm64 4.4.203 Kernel Configuration
 #
 CONFIG_ARM64=y
 CONFIG_64BIT=y
@@ -696,7 +696,11 @@ CONFIG_TCP_CONG_HTCP=y
 # CONFIG_TCP_CONG_DCTCP is not set
 # CONFIG_TCP_CONG_CDG is not set
 CONFIG_TCP_CONG_AGILESD=y
+# CONFIG_DEFAULT_BIC is not set
 CONFIG_DEFAULT_CUBIC=y
+# CONFIG_DEFAULT_HTCP is not set
+# CONFIG_DEFAULT_WESTWOOD is not set
+# CONFIG_DEFAULT_AGILESD is not set
 # CONFIG_DEFAULT_RENO is not set
 CONFIG_DEFAULT_TCP_CONG="cubic"
 # CONFIG_TCP_MD5SIG is not set
@@ -3322,7 +3326,6 @@ CONFIG_QPNP_USB_PDPHY=y
 # CONFIG_USB_EMI26 is not set
 # CONFIG_USB_ADUTUX is not set
 # CONFIG_USB_SEVSEG is not set
-# CONFIG_USB_RIO500 is not set
 # CONFIG_USB_LEGOTOWER is not set
 # CONFIG_USB_LCD is not set
 # CONFIG_USB_LED is not set
