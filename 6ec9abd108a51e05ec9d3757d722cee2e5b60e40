@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "359c46e5_a4321d3e",
+        "filename": "arch/arm64/configs/electric_mata_defconfig",
+        "patchSetId": 1
+      },
+      "lineNbr": 442,
+      "author": {
+        "id": 1000000
+      },
+      "writtenOn": "2020-01-07T01:25:25Z",
+      "side": 1,
+      "message": "delete this",
+      "revId": "6ec9abd108a51e05ec9d3757d722cee2e5b60e40",
+      "serverId": "039621b9-0c7c-40f3-867c-684f4bc911d6",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "9e1a477f_21efbaff",
+        "filename": "arch/arm64/configs/electric_mata_defconfig",
+        "patchSetId": 1
+      },
+      "lineNbr": 443,
+      "author": {
+        "id": 1000000
+      },
+      "writtenOn": "2020-01-07T01:25:25Z",
+      "side": 1,
+      "message": "update this to be 1000",
+      "revId": "6ec9abd108a51e05ec9d3757d722cee2e5b60e40",
+      "serverId": "039621b9-0c7c-40f3-867c-684f4bc911d6",
+      "unresolved": true
+    }
+  ]
+}
