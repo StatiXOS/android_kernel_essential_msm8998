@@ -1,6 +1,6 @@
 #
 # Automatically generated file; DO NOT EDIT.
-# Linux/arm64 4.4.203 Kernel Configuration
+# Linux/arm64 4.4.208 Kernel Configuration
 #
 CONFIG_ARM64=y
 CONFIG_64BIT=y
@@ -3173,6 +3173,7 @@ CONFIG_HID_SAMSUNG=y
 CONFIG_HID_SONY=y
 # CONFIG_SONY_FF is not set
 CONFIG_HID_SPEEDLINK=y
+# CONFIG_HID_STEAM is not set
 # CONFIG_HID_STEELSERIES is not set
 CONFIG_HID_SUNPLUS=y
 # CONFIG_HID_RMI is not set
