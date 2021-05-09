@@ -3640,7 +3640,7 @@ void mdss_panelinfo_to_fb_var(struct mdss_panel_info *pinfo,
 {
 	u32 frame_rate;
 
-	var->xres = mdss_fb_get_panel_xres(pinfo);
+	var->xres = mdss_fb_get_panel_xres(pinfo) - 64;
 	var->yres = pinfo->yres;
 	var->lower_margin = pinfo->lcdc.v_front_porch -
 		pinfo->prg_fet;
