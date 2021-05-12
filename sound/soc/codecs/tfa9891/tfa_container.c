@@ -37,13 +37,6 @@ static char nonename[] = "NONE";
 
 static void cont_get_devs(nxpTfaContainer_t *cont);
 
-static int float_to_int(uint32_t x)
-{
-	unsigned e = (0x7F + 31) - ((*(unsigned *) &x & 0x7F800000) >> 23);
-	unsigned m = 0x80000000 | (*(unsigned *) &x << 8);
-	return -(int)((m >> e) & -(e < 32));
-}
-
 /*
  * check the container file and set module global
 */
@@ -332,13 +325,12 @@ static char nostring[]="Undefined string";
 static enum Tfa98xx_Error tfaContWriteVstep(int dev_idx,  nxpTfaVolumeStep2File_t *vp, int vstep) 
 {
 	enum Tfa98xx_Error err;
-	float voldB = 0.0;
+	int voldB = 0;
 	unsigned short vol;
 
 	if (vstep < vp->vsteps) {
 		voldB = vp->vstep[vstep].attenuation;
-		/* vol = (unsigned short)(voldB / (-0.5f)); */
-		vol = (unsigned short)(-2 * float_to_int(*((uint32_t *)&voldB)));
+		vol = (unsigned short)(voldB / 2);
 		if (vol > 255)	/* restricted to 8 bits */
 			vol = 255;
 

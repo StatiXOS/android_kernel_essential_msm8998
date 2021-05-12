@@ -373,7 +373,7 @@ typedef struct nxpTfaDrcFile2 {
 #define NXPTFA_VP1_VERSION    '1'
 #define NXPTFA_VP1_SUBVERSION "01"
 typedef struct nxpTfaVolumeStep1 {
-    float attenuation;              // IEEE single float
+    u32 attenuation;              // IEEE single float
     uint8_t preset[TFA98XX_PRESET_LENGTH];
 } nxpTfaVolumeStep1_t;
 
@@ -381,7 +381,7 @@ typedef struct nxpTfaVolumeStep1 {
 #define NXPTFA_VP2_VERSION    '2'
 #define NXPTFA_VP2_SUBVERSION "01"
 typedef struct nxpTfaVolumeStep2 {
-    float attenuation;              // IEEE single float
+    u32 attenuation;              // IEEE single float
     uint8_t preset[TFA98XX_PRESET_LENGTH];
     nxpTfaFilter_t filter[TFA98XX_MAX_EQ];// note: API index counts from 1..10
 } nxpTfaVolumeStep2_t;
@@ -477,7 +477,7 @@ typedef struct nxpOldTfaFilter {
   uint8_t enabled;
 } nxpTfaOldFilter_t ;  //8 * float + int32 + byte == 37
 typedef struct nxpTfaOldVolumeStep2 {
-    float attenuation;              // IEEE single float
+    u32 attenuation;              // IEEE single float
     uint8_t preset[TFA98XX_PRESET_LENGTH];
     nxpTfaOldFilter_t eq[10];
 } nxpTfaOldVolumeStep2_t;
