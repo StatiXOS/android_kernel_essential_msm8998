@@ -70,6 +70,15 @@ modpost_link()
 			${KBUILD_VMLINUX_MAIN}				\
 			--end-group"
 	fi
+
+	if [ -n "${CONFIG_LTO}" ]; then
+		# This might take a while, so indicate that we're doing
+		# an LTO link
+		info LTO vmlinux.o
+	else
+		info LD vmlinux.o
+	fi
+
 	${LDFINAL} ${LDFLAGS} -r -o ${1} ${objects}
 }
 
