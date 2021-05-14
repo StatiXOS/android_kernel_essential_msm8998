@@ -136,7 +136,7 @@ then
 	fi
 	if [ "$DRONE" ]
 	then
-		export KBUILD_BUILD_VERSION=$DRONE_BUILD_NUMBER
+		export KBUILD_BUILD_VERSION=0
 		export KBUILD_BUILD_HOST=Pegasus
 		export CI_BRANCH=$DRONE_BRANCH
 		export BASEDIR=$DRONE_REPO_NAME # overriding
