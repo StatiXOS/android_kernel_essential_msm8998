@@ -377,7 +377,13 @@ static int mdss_fb_get_panel_xres(struct mdss_panel_info *pinfo)
 		xres += mdss_fb_get_panel_xres(&pdata->next->panel_info);
 	if (pinfo->split_link_enabled)
 		xres = xres * pinfo->mipi.num_of_sublinks;
+#ifdef CONFIG_BOARD_MATA
+	if (!strnstr(saved_command_line, "initramfs", strlen(saved_command_line)))
+		return xres;
+	return xres - 128;
+#else
 	return xres;
+#endif
 }
 
 static inline int mdss_fb_validate_split(int left, int right,
@@ -3641,7 +3647,7 @@ void mdss_panelinfo_to_fb_var(struct mdss_panel_info *pinfo,
 {
 	u32 frame_rate;
 
-	var->xres = mdss_fb_get_panel_xres(pinfo) - 64;
+	var->xres = mdss_fb_get_panel_xres(pinfo);
 	var->yres = pinfo->yres;
 	var->lower_margin = pinfo->lcdc.v_front_porch -
 		pinfo->prg_fet;
