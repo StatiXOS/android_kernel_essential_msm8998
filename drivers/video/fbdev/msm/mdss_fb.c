@@ -3641,7 +3641,7 @@ void mdss_panelinfo_to_fb_var(struct mdss_panel_info *pinfo,
 {
 	u32 frame_rate;
 
-	if (strnstr(saved_command_line, "skip_initramfs",
+	if (strnstr(saved_command_line, "androidboot.mode=recovery",
                     strlen(saved_command_line))) {
                 var->xres = mdss_fb_get_panel_xres(pinfo) - 128;
         } else {
